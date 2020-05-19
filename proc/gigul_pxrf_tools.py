@@ -96,6 +96,7 @@ def estimate_peaks (data,amp_threshold,slope_threshold):
     dd = smooth(smooth(smooth(np.gradient(d)))) # Generate a second derivative to evaluate slope at zero crossing
    
     #Plot to troubleshoot settings
+    #The amplitud threshold and slope threshold values are shown by red lines on the plot
     fig, ax1 = plt.subplots()
     ax2 = ax1.twinx()
     ax1.plot(ch, data, 'g-')
