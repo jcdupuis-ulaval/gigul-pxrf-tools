@@ -49,7 +49,7 @@ def remove_background(n,scale,trace,o,fname,ch):
     f = interpolate.interp1d(xsmooth_seed, ysmooth_seed,kind='slinear')
     ynoise = f(ch)
     print('Saving denoised trace to file : ' + fname+'.csv')
-    np.savetxt(fname+'.csv',trace-ynoise,delimiter=',')
+    np.savetxt(fname+'.csv',np.transpose([ch,trace-ynoise]),delimiter=',')
     return ynoise, trace-ynoise
 
 
@@ -99,8 +99,9 @@ def estimate_peaks (data,amp_threshold,slope_threshold):
     fig, ax1 = plt.subplots()
     ax2 = ax1.twinx()
     ax1.plot(ch, data, 'g-')
+    ax1.plot(ch,np.ones(len(ch))*amp_threshold,'-r')
     ax2.plot(ch, dd, 'b-')
-    
+    ax2.plot(ch,np.ones(len(ch))*slope_threshold,'-r')
     ax1.set_xlabel('ch')
     ax1.set_ylabel('data', color='g')
     ax2.set_ylabel('1st deriv', color='b')
@@ -121,7 +122,7 @@ def refine_peaks (data,peak_est,peak_half_width,ch,fname):
     peaks = np.zeros((len(peak_est),2))
     for i in np.arange(0,len(peak_est)):
         pk = int(ch[np.where(ch == peak_est[i,0])])
-        x = ch[pk-peak_half_width:pk+peak_half_width]
+        x = (ch[pk-peak_half_width:pk+peak_half_width])
         y =  data[pk-peak_half_width:pk+peak_half_width]
         xnew = np.linspace(ch[pk-peak_half_width],ch[pk+peak_half_width],num=1000)
         p=np.polyfit(x,y,4)

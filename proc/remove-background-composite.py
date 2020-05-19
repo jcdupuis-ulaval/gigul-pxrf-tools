@@ -8,9 +8,6 @@ Created on Tue Apr  7 13:44:00 2020
 import numpy as np
 import matplotlib.pyplot as plt
 import gigul_pxrf_tools as gigul
-import os
-
-
 
 
 # File setup for data and results################################
@@ -52,7 +49,7 @@ for i in np.arange(0,npaires*2,2):
 for traceno in np.arange(0,npaires):
     # Prepare our data to be used in the filter #####################
     trace = merged_data[:,traceno] # get the proper trace in our file 
-    ch = np.linspace(0,nsample,num=nsample) # Assign channel numbers 
+    ch = np.linspace(1,nsample,num=nsample) # Assign channel numbers 
     ch = ch[~np.isnan(trace)] # ignore the channels where there is no data
     trace = trace[~np.isnan(trace)] # ignore traces where there is no data
     
