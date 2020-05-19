@@ -56,7 +56,7 @@ for traceno in np.arange(0,npaires):
     ch = ch[~np.isnan(trace)] # ignore the channels where there is no data
     trace = trace[~np.isnan(trace)] # ignore traces where there is no data
     
-    np.savetxt(rdir+'CSV/'+'merged-raw-'+fname+'-paire-'+str(traceno)+'.csv',np.transpose([ch,trace]))
+    np.savetxt(rdir+'CSV/'+'merged-raw-'+fname+'-paire-'+str(traceno)+'.csv',np.transpose([ch,trace]),delimiter=',')
 #################################################################
 
     ynoise, trace_clean = gigul.remove_background(ns,scale,trace,o,rdir + 'CSV/'+'denoised-'+fname+'-paire-'+str(traceno),ch)
