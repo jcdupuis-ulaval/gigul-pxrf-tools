@@ -135,7 +135,7 @@ def refine_peaks (data,peak_est,peak_half_width,ch,fname):
         peaks[i,0]= local_peak[0,0]
         peaks[i,1]= local_peak[0,1]
     print('Saving refined-picks to file : ' + fname)
-    np.savetxt(fname+'.csv',peaks,delimiter=',')
+    np.savetxt(fname,peaks,delimiter=',')
     return peaks
 
 
