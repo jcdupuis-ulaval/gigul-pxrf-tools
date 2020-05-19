@@ -42,7 +42,7 @@ else:
 k=0
 merged_data = np.zeros((nsample,npaires))
 
-for i in np.arange(1,npaires*2,2):
+for i in np.arange(0,npaires*2,2):
     merged_data[:,k]=np.sum(traces[:,i:i+1],axis=1) 
     print(i,i+1)
     k = k+1
@@ -56,10 +56,10 @@ for traceno in np.arange(0,npaires):
     ch = ch[~np.isnan(trace)] # ignore the channels where there is no data
     trace = trace[~np.isnan(trace)] # ignore traces where there is no data
     
-    np.savetxt(rdir+'CSV/'+'merged-raw-'+fname+'-paire-'+str(traceno)+'.csv',np.transpose([ch,trace]),delimiter=',')
+    np.savetxt(rdir+'CSV/merged/'+'merged-raw-'+fname+'-paire-'+str(traceno)+'.csv',np.transpose([ch,trace]),delimiter=',')
 #################################################################
 
-    ynoise, trace_clean = gigul.remove_background(ns,scale,trace,o,rdir + 'CSV/'+'denoised-'+fname+'-paire-'+str(traceno),ch)
+    ynoise, trace_clean = gigul.remove_background(ns,scale,trace,o,rdir + 'CSV/denoised/'+'denoised-'+fname+'-paire-'+str(traceno),ch)
     gigul.show_clean_trace (ch,trace,ynoise,trace_clean,rdir+'PNG/'+fname+'_paire'+str(traceno))
     
 plt.close('all')
