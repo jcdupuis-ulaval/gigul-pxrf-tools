@@ -52,7 +52,7 @@ for traceno in np.arange(0,npaires):
     ch = np.linspace(1,nsample,num=nsample) # Assign channel numbers 
     ch = ch[~np.isnan(trace)] # ignore the channels where there is no data
     trace = trace[~np.isnan(trace)] # ignore traces where there is no data
-    
+    # Save our merged data
     np.savetxt(rdir+'CSV/merged/'+'merged-raw-'+fname+'-paire-'+str(traceno)+'.csv',np.transpose([ch,trace]),delimiter=',')
 #################################################################
 
