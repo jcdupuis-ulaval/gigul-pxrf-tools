@@ -9,16 +9,19 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy import interpolate
 
-'''
+
+def remove_background(n,scale,trace,o,fname,ch):
+    '''
 The function remove_background estimates the Bremsstrahlung radiation in the spectra
 and removes it from the outpu trace.
 # Filter parameters #############################################
 ns                  # Width of the window for noise estimate
 scale               # SNR Threshold
 o                   # Order of the noise approximation 
+fname               # The filename where the denoised data will be stored
+ch                  # The channels associated with each spectra reading
 #################################################################
 '''
-def remove_background(n,scale,trace,o,fname,ch):
     step = int(n/2)
     k = 0
     bins = np.arange(0,len(trace),step)
