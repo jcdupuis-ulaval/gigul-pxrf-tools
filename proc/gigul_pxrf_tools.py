@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 Created on Tue Apr  7 13:44:00 2020
-
+This set of tools are used to process and pXRF data. 
 @author: chdup58
 """
 
@@ -9,7 +9,15 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy import interpolate
 
-
+'''
+The function remove_background estimates the Bremsstrahlung radiation in the spectra
+and removes it from the outpu trace.
+# Filter parameters #############################################
+ns                  # Width of the window for noise estimate
+scale               # SNR Threshold
+o                   # Order of the noise approximation 
+#################################################################
+'''
 def remove_background(n,scale,trace,o,fname,ch):
     step = int(n/2)
     k = 0
