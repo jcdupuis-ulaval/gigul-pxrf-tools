@@ -1,4 +1,4 @@
-#Gigul_pxrf_tools
+# Gigul_pxrf_tools
 The tools in this package allows the user to process portable x-ray 
 fluorescence data (pXRF) in order to identify elemental peaks. The data files
 used as input are in CSV format. The first column contains the channel numbers
