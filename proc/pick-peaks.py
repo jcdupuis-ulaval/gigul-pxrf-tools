@@ -19,8 +19,8 @@ ddir = '../results/CSV/denoised/'
 rdir = '../results/peaks/'
 idir = '../results/PNG/'
 # Filter parameters #############################################
-amp_threshold=125.0     # Only values above this thershold will be considered for peaks 
-slope_threshold =-20.0  # Only values below this threshold will be considered for peaks
+amp_threshold=25.0     # Only values above this thershold will be considered for peaks 
+slope_threshold =-8.0  # Only values below this threshold will be considered for peaks
 peak_half_width = 5     # Width of the data selection to fit polynomial function
 #################################################################
 
