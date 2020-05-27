@@ -10,6 +10,58 @@ import matplotlib.pyplot as plt
 from scipy import interpolate
 
 
+def estimate_background(n,scale,trace,o,ch):
+    '''
+The function remove_background estimates the Bremsstrahlung radiation in the spectra
+and removes it from the outpu trace.
+# Filter parameters #############################################
+ns                  # Width of the window for noise estimate
+scale               # SNR Threshold
+o                   # Order of the noise approximation 
+fname               # The filename where the denoised data will be stored
+ch                  # The channels associated with each spectra reading
+#################################################################
+'''
+    step = int(n/2)
+    k = 0
+    bins = np.arange(0,len(trace),step)
+    xsmooth_seed = np.zeros(len(bins)+1)
+    ysmooth_seed = np.zeros(len(bins)+1)
+
+    for i in bins:
+    
+        nstart = i
+        nstop = nstart + n
+
+        yobs = trace[nstart:nstop]
+        xobs = np.linspace(nstart,nstop,num=len(yobs))
+        mu_data = np.median(yobs)
+        sigma_data = np.std(yobs)
+
+    
+        if mu_data != 0:
+            y = yobs[np.where(yobs<mu_data+(scale*sigma_data))]
+            x = xobs[np.where(yobs<mu_data+(scale*sigma_data))]
+            p=np.polyfit(x,y,o)
+
+            if i == 0:
+                xsmooth_seed[k-1]=min(xobs)
+                ysmooth_seed[k-1]=np.polyval(p,min(xobs))
+            elif i==max(bins):
+                xsmooth_seed[k+1]=max(xobs)
+                ysmooth_seed[k+1]=np.polyval(p,max(xobs))
+            else:         
+                xsmooth_seed[k] = min(xobs) + (max(xobs)-min(xobs))/2
+                ysmooth_seed[k] = np.polyval(p,xsmooth_seed[k])
+        else:
+            xsmooth_seed[k]= min(xobs) + (max(xobs)-min(xobs))/2
+            ysmooth_seed[k]= 0.0
+        k=k+1
+    f = interpolate.interp1d(xsmooth_seed, ysmooth_seed,kind='slinear')
+    ynoise = f(ch)
+
+    return ynoise
+
 def remove_background(n,scale,trace,o,fname,ch):
     '''
 The function remove_background estimates the Bremsstrahlung radiation in the spectra
