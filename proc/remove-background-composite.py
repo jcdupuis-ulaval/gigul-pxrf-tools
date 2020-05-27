@@ -16,9 +16,9 @@ ddir = '../data/'
 rdir = '../results/'
 
 # Filter parameters #############################################
-ns=50               # Width of the window for noise estimate
-scale = 0.05        # SNR Threshold
-o = 1               # Order of the noise approximation 
+ns=50              # Width of the window for noise estimate
+scale = 5e-7        # SNR Threshold
+o = 1             # Order of the noise approximation 
 #################################################################
 # load the data file 
 print ('Processing file : '+ddir+fname+'.csv')
