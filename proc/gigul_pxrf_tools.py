@@ -63,6 +63,16 @@ ch                  # The channels associated with each spectra reading
     np.savetxt(fname+'.csv',np.transpose([ch,trace-ynoise]),delimiter=',')
     return ynoise, trace-ynoise
 
+def calc_amp_threshold(trace,sigma):
+    mu_trace=np.median(trace)
+    std_trace = np.std(trace)*sigma
+    return mu_trace+std_trace
+
+def calc_slope_threshold(trace,sigma):
+    mu_trace=np.median(trace)
+    std_trace = np.std(trace)*sigma
+    return mu_trace-std_trace
+
 
 def show_clean_trace (ch,trace,ynoise,trace_clean,fname):
     plt.figure()
@@ -100,7 +110,7 @@ def smooth (data):
         sdata[i]=(data[i-1]+(2*data[i])+data[i+1])/4.0
     return sdata
 
-def estimate_peaks (data,amp_threshold,slope_threshold):
+def estimate_peaks (data,amp_sensitivity,slope_sensitivity):
     ch = np.linspace(1,len(data),num=len(data)) # Assign channel numbers 
     data_smooth =smooth(smooth(smooth(data)))
     d = np.gradient(data_smooth)
@@ -108,6 +118,8 @@ def estimate_peaks (data,amp_threshold,slope_threshold):
    
     #Plot to troubleshoot settings
     #The amplitud threshold and slope threshold values are shown by red lines on the plot
+    amp_threshold = calc_amp_threshold(data,amp_sensitivity)
+    slope_threshold = calc_slope_threshold(dd,slope_sensitivity)
     fig, ax1 = plt.subplots()
     ax2 = ax1.twinx()
     ax1.plot(ch, data, 'g-')
