@@ -129,8 +129,9 @@ def smooth (data):
         sdata[i]=(data[i-1]+(2*data[i])+data[i+1])/4.0
     return sdata
 
-def estimate_peaks (data,amp_sensitivity,slope_sensitivity):
-    ch = np.linspace(1,len(data),num=len(data)) # Assign channel numbers 
+def estimate_peaks (data,ch,amp_sensitivity,slope_sensitivity):
+    # Need to change to include the channels 
+    #ch = np.linspace(1,len(data),num=len(data)) # Assign channel numbers 
     data_smooth =smooth(smooth(smooth(data)))
     d = np.gradient(data_smooth)
     dd = smooth(smooth(smooth(np.gradient(d)))) # Generate a second derivative to evaluate slope at zero crossing
@@ -162,24 +163,34 @@ def estimate_peaks (data,amp_sensitivity,slope_sensitivity):
     return peak_est
 
 def refine_peaks (data,peak_est,peak_half_width,ch,fname):
+    # In order to be able to pick data slices in the spectra, we introduce the concept of an offset
+    offset = ch.min()
+    ch = ch - offset
     peaks = np.zeros((len(peak_est),2))
     for i in np.arange(0,len(peak_est)):
-        pk = int(ch[np.where(ch == peak_est[i,0])])
-        x = (ch[pk-peak_half_width:pk+peak_half_width])
-        y =  data[pk-peak_half_width:pk+peak_half_width]
-        xnew = np.linspace(ch[pk-peak_half_width],ch[pk+peak_half_width],num=1000)
-        p=np.polyfit(x,y,4)
-        ynew = np.polyval(p,xnew)
-        d = np.gradient(ynew)
-        local_peak = np.zeros((1,2))
-        for j in np.arange(0,len(d)-1):
-            if np.sign(d[j]) > np.sign(d[j+1]):
-                local_peak[0,0]=xnew[j]
-                local_peak[0,1]=ynew[j]
-        peaks[i,0]= local_peak[0,0]
-        peaks[i,1]= local_peak[0,1]
-    print('Saving refined-picks to file : ' + fname)
-    np.savetxt(fname,peaks,delimiter=',')
+        pk = int(ch[np.where(ch == (peak_est[i,0]-offset))])
+        xstart = pk-peak_half_width
+        xstop =  pk+peak_half_width
+        if xstart > 0 : # this means that we did not place the start of our data subset on a peak
+            x = ch[xstart:xstop]
+            y = data[xstart:xstop]
+
+            xnew = np.linspace(xstart,xstop,num=1000)
+            p=np.polyfit(x,y,4)
+            ynew = np.polyval(p,xnew)
+            d = np.gradient(ynew)
+            local_peak = np.zeros((1,2))
+            for j in np.arange(0,len(d)-1):
+                if np.sign(d[j]) > np.sign(d[j+1]):
+                    local_peak[0,0]=xnew[j]
+                    local_peak[0,1]=ynew[j]
+            peaks[i,0]= local_peak[0,0] + offset
+            peaks[i,1]= local_peak[0,1] 
+            print('Saving refined-picks to file : ' + fname)
+            np.savetxt(fname,peaks,delimiter=',')
+        elif xstart<0 :
+            print ('You cannot sub-divide your dataset on a peak')
+            break
     return peaks
 
 
