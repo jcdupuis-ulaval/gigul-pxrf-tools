@@ -129,8 +129,8 @@ def smooth (data):
         sdata[i]=(data[i-1]+(2*data[i])+data[i+1])/4.0
     return sdata
 
-def estimate_peaks (data,amp_sensitivity,slope_sensitivity):
-    ch = np.linspace(1,len(data),num=len(data)) # Assign channel numbers 
+def estimate_peaks (data,ch,amp_sensitivity,slope_sensitivity):
+    #ch = np.linspace(1,len(data),num=len(data)) # Assign channel numbers 
     data_smooth =smooth(smooth(smooth(data)))
     d = np.gradient(data_smooth)
     dd = smooth(smooth(smooth(np.gradient(d)))) # Generate a second derivative to evaluate slope at zero crossing
