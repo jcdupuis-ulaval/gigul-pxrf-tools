@@ -130,6 +130,7 @@ def smooth (data):
     return sdata
 
 def estimate_peaks (data,ch,amp_sensitivity,slope_sensitivity):
+    # Need to change to include the channels 
     #ch = np.linspace(1,len(data),num=len(data)) # Assign channel numbers 
     data_smooth =smooth(smooth(smooth(data)))
     d = np.gradient(data_smooth)

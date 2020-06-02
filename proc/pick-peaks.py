@@ -36,7 +36,7 @@ for fname in flist:
     trace_norm = gigul.scale_trace(trace)
     ch = data[:,0] 
     # We generate our peak estimates on the normalized data
-    peak_est = gigul.estimate_peaks(trace_norm,amp_sensitivity,slope_sensitivity)
+    peak_est = gigul.estimate_peaks(trace_norm,ch,amp_sensitivity,slope_sensitivity)
     # We pick on the real data starting from our pick estimates
     peaks = gigul.refine_peaks(trace,peak_est,peak_half_width,ch,rdir+'picks_'+fname)
 
