@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 Created on Tue Apr  7 13:44:00 2020
-
+This set of tools are used to process and pXRF data. 
 @author: chdup58
 """
 
@@ -9,8 +9,22 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy import interpolate
 
+def scale_trace(trace):
+    scaled_trace = (trace-(abs(trace).min()))/(abs(trace).max()-abs(trace).min())
+    return scaled_trace
 
-def remove_background(n,scale,trace,o,fname,ch):
+
+def estimate_background(n,scale,trace,o,ch):
+    '''
+The function remove_background estimates the Bremsstrahlung radiation in the spectra
+and removes it from the outpu trace.
+# Filter parameters #############################################
+ns                  # Width of the window for noise estimate
+scale               # SNR Threshold
+o                   # Order of the noise approximation 
+ch                  # The channels associated with each spectra reading
+#################################################################
+'''
     step = int(n/2)
     k = 0
     bins = np.arange(0,len(trace),step)
@@ -48,9 +62,35 @@ def remove_background(n,scale,trace,o,fname,ch):
         k=k+1
     f = interpolate.interp1d(xsmooth_seed, ysmooth_seed,kind='slinear')
     ynoise = f(ch)
+
+    return ynoise
+
+def remove_background(n,scale,trace,o,fname,ch):
+    '''
+The function remove_background estimates the Bremsstrahlung radiation in the spectra
+and removes it from the outpu trace.
+# Filter parameters #############################################
+ns                  # Width of the window for noise estimate
+scale               # SNR Threshold
+o                   # Order of the noise approximation 
+fname               # The filename where the denoised data will be stored
+ch                  # The channels associated with each spectra reading
+#################################################################
+'''
+    background_estimate = estimate_background(n,scale,trace,o,ch)
     print('Saving denoised trace to file : ' + fname+'.csv')
-    np.savetxt(fname+'.csv',np.transpose([ch,trace-ynoise]),delimiter=',')
-    return ynoise, trace-ynoise
+    np.savetxt(fname+'.csv',np.transpose([ch,trace-background_estimate]),delimiter=',')
+    return background_estimate, trace-background_estimate
+
+def calc_amp_threshold(trace,sigma):
+    mu_trace=np.median(trace)
+    std_trace = np.std(trace)*sigma
+    return mu_trace+std_trace
+
+def calc_slope_threshold(trace,sigma):
+    mu_trace=np.median(trace)
+    std_trace = np.std(trace)*sigma
+    return mu_trace-std_trace
 
 
 def show_clean_trace (ch,trace,ynoise,trace_clean,fname):
@@ -89,7 +129,7 @@ def smooth (data):
         sdata[i]=(data[i-1]+(2*data[i])+data[i+1])/4.0
     return sdata
 
-def estimate_peaks (data,amp_threshold,slope_threshold):
+def estimate_peaks (data,amp_sensitivity,slope_sensitivity):
     ch = np.linspace(1,len(data),num=len(data)) # Assign channel numbers 
     data_smooth =smooth(smooth(smooth(data)))
     d = np.gradient(data_smooth)
@@ -97,6 +137,8 @@ def estimate_peaks (data,amp_threshold,slope_threshold):
    
     #Plot to troubleshoot settings
     #The amplitud threshold and slope threshold values are shown by red lines on the plot
+    amp_threshold = calc_amp_threshold(data,amp_sensitivity)
+    slope_threshold = calc_slope_threshold(dd,slope_sensitivity)
     fig, ax1 = plt.subplots()
     ax2 = ax1.twinx()
     ax1.plot(ch, data, 'g-')

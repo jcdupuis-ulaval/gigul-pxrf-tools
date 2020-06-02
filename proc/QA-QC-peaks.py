@@ -27,6 +27,7 @@ for fname in flist_raw:
     peaks = np.genfromtxt(pdir+flist_peaks[i],delimiter=',')
     clean_data = np.genfromtxt(cdir+flist_clean[i],delimiter=',')
     plt.plot(raw_data[:,0],raw_data[:,1],peaks[:,0],peaks[:,1],'+',clean_data[:,0],clean_data[:,1])
+    plt.grid()
     plt.show()
     i=i+1
 
