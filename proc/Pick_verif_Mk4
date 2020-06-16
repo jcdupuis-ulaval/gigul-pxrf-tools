@@ -1,0 +1,61 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Tue Jun 16 13:12:35 2020
+
+@author: debth
+"""
+
+
+#importer les bons utilitaires
+import numpy as np
+import matplotlib.pyplot as plt
+import gigul_pxrf_tools as gigul
+import statistics 
+from statistics import stdev
+import os
+
+#importer les datas 
+# File setup for data and results################################
+fname ='merged-raw-TDCAEXD332886Z-paire-0'
+ddir = '../results/peaks/'
+rdir = '../results/'
+idir = '../results/CSV/merged/'
+fname_peaks = 'picks_denoised-TDCAEXD332886Z-paire-0.csv'
+
+# load the data file 
+print ('Processing file : '+idir+fname+'.csv')
+data_brute=np.genfromtxt(idir+fname+'.csv',delimiter=',')
+m,n = data_brute.shape
+traces_brute = data_brute[:,1:n]
+nsample,ntraces_brute = traces_brute.shape
+data_peaks = np.genfromtxt(ddir+fname_peaks,delimiter=',')
+
+# Filter parameters #############################################
+ns=50               # Width of the window for noise estimate
+scale = 0.05        # SNR Threshold
+o = 1               # Order of the noise approximation 
+#################################################################
+
+#estimation de la moyenne mobile 
+
+for traceno in np.arange(0,ntraces_brute):
+    # Prepare our data to be used in the filter #####################
+    trace = traces_brute[:,traceno] # get the proper trace in our file 
+    ch = np.linspace(1,nsample,num=nsample) # Assign channel numbers 
+    ch = ch[~np.isnan(trace)] # ignore the channels where there is no data
+    trace = trace[~np.isnan(trace)] # ignore traces where there is no data
+    np.savetxt(rdir+'CSV/merged/'+'merged-raw-'+fname+'-paire-'+str(traceno)+'.csv',np.transpose([ch,trace]),delimiter=',')
+    
+    ynoise, trace_clean = gigul.remove_background(ns,scale,trace,o,rdir + 'CSV/denoised/'+'denoised-'+fname+'-paire-'+str(traceno),ch)
+    gigul.show_clean_trace (ch,trace,ynoise,trace_clean,rdir+'PNG/'+fname+'_paire'+str(traceno))
+    
+
+     
+#################################################################
+C=traces_brute.tolist()
+D=ynoise.tolist()
+Ecart_type = statistics.stdev(C, xbar=D)
+    
+
+
+
