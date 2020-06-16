@@ -21,13 +21,13 @@ fname_peaks = 'picks_denoised-TDCAEXD332886Z-paire-0.csv'
 
 # load the data file 
 print ('Processing file : '+idir+fname+'.csv')
-data_brute=np.genfromtxt(idir+fname+'.csv',delimiter=',',skip_header=1)
+data_brute=np.genfromtxt(idir+fname+'.csv',delimiter=',')
 m,n = data_brute.shape
 traces_brute = data_brute[:,1:n]
 nsample,ntraces_brute = traces_brute.shape
 data_peaks = np.genfromtxt(ddir+fname_peaks,delimiter=',')
 
-#Standart Deviation methode 1 (fonctionne pas)
+#Standart Deviation methode 1 (fonctionne pas, c'est un essais)
 
 def sigma(traces_brute):
     positives = [m for m in traces_brute if m >= 0]
@@ -37,17 +37,17 @@ def sigma(traces_brute):
         diff = ((sum([abs(i - mean)**2 for i in positives]))/(len(positives)))**(0.5)
         for i in positives:
             if (abs(i - mean)) > (diff*3):
-                sq_err.append(-9999.00)
+                sq_err.append(0)
             else:
                 sq_err.append(i)
     else:
-        return [-9999.00]
+        return [0]
     return sq_err
 
 G = map(sigma,traces_brute)
 print (G) 
 
-#Standart Deviation methode 2 
+#Standart Deviation methode 2 (bloquer car je n'arrive pas a faire de graphique fonctionnel (tuple) et il y'a une erreur dans data_brute que j'arrive pas faire sortir)
 
 a = data_brute[:,1:n]
 
@@ -66,4 +66,8 @@ def sdevs(a):
     return sds
 
 sds = sdevs(a)
-print(sds[150])
+print(sds[450])
+result = sds[0,2048]
+
+plt.plot(sds[:,0],sds[:,1],data_peaks[:,0],data_peaks[:,1],'+')
+plt.show()
