@@ -7,7 +7,7 @@ Created on Tue May 19 08:11:52 2020
 
 import numpy as np
 import matplotlib.pyplot as plt
-import statistics
+from math import sqrt
 import os
 
 # peak verification 
@@ -27,7 +27,7 @@ traces_brute = data_brute[:,1:n]
 nsample,ntraces_brute = traces_brute.shape
 data_peaks = np.genfromtxt(ddir+fname_peaks,delimiter=',')
 
-#Standart Deviation
+#Standart Deviation methode 1 (fonctionne pas)
 
 def sigma(traces_brute):
     positives = [m for m in traces_brute if m >= 0]
@@ -47,4 +47,23 @@ def sigma(traces_brute):
 G = map(sigma,traces_brute)
 print (G) 
 
+#Standart Deviation methode 2 
 
+a = data_brute[:,1:n]
+
+def sdevs(a):
+    sds = [0]
+    n = 1
+    sum_x = a[0]
+    sum_x_squared = a[0]**2
+
+    for x in a[1:]:
+        sum_x += x
+        sum_x_squared += x**2
+        n += 1
+        sd = sqrt(n/(n-1)*(sum_x_squared/n - (sum_x/n)**2))
+        sds.append(sd)
+    return sds
+
+sds = sdevs(a)
+print(sds[150])
