@@ -29,17 +29,22 @@ data_peaks = np.genfromtxt(ddir+fname_peaks,delimiter=',')
 
 #Standart Deviation
 
-def sigma(data_brute):
-    positives = [m for m in data_brute if m >= 0]
+def sigma(traces_brute):
+    positives = [m for m in traces_brute if m >= 0]
+    sq_err=[]
     if positives:
         mean = sum(positives) / len(positives)
         diff = ((sum([abs(i - mean)**2 for i in positives]))/(len(positives)))**(0.5)
         for i in positives:
             if (abs(i - mean)) > (diff*3):
-                return 0
-        return diff
+                sq_err.append(-9999.00)
+            else:
+                sq_err.append(i)
     else:
-        return 0
+        return [-9999.00]
+    return sq_err
 
-print(sigma)
+G = map(sigma,traces_brute)
+print (G) 
+
 
