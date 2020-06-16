@@ -1,0 +1,45 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Tue May 19 08:11:52 2020
+
+@author: debth
+"""
+
+import numpy as np
+import matplotlib.pyplot as plt
+import statistics
+import os
+
+# peak verification 
+# File setup for data and results################################
+fname ='merged-raw-TDCAEXD332886Z-paire-0'
+ddir = '../results/peaks/'
+rdir = '../results/peaks/Verification/'
+idir = '../results/CSV/merged/'
+fname_peaks = 'picks_denoised-TDCAEXD332886Z-paire-0.csv'
+
+
+# load the data file 
+print ('Processing file : '+idir+fname+'.csv')
+data_brute=np.genfromtxt(idir+fname+'.csv',delimiter=',',skip_header=1)
+m,n = data_brute.shape
+traces_brute = data_brute[:,1:n]
+nsample,ntraces_brute = traces_brute.shape
+data_peaks = np.genfromtxt(ddir+fname_peaks,delimiter=',')
+
+#Standart Deviation
+
+def sigma(data_brute):
+    positives = [m for m in data_brute if m >= 0]
+    if positives:
+        mean = sum(positives) / len(positives)
+        diff = ((sum([abs(i - mean)**2 for i in positives]))/(len(positives)))**(0.5)
+        for i in positives:
+            if (abs(i - mean)) > (diff*3):
+                return 0
+        return diff
+    else:
+        return 0
+
+print(sigma)
+
