@@ -1,0 +1,144 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Mon Jun 22 16:30:02 2020
+
+@author: debth
+"""
+
+import numpy as np
+import matplotlib.pyplot as plt
+import gigul_pxrf_tools as gigul
+import math
+
+# File setup for data and results################################
+fname ='TDCAEXD332886Z'
+ddir = '../data/Terrain/'
+rdir = '../results/'
+
+# Filter parameters #############################################
+ns=50              # Width of the window for noise estimate
+scale = 5e-7        # SNR Threshold
+o = 1             # Order of the noise approximation 
+#################################################################
+# load the data file 
+print ('Processing file : '+ddir+fname+'.csv')
+datas=np.genfromtxt(ddir+fname+'.csv',delimiter=';',skip_header=1)
+a,b= datas.shape
+data=datas[:,1:b]
+m,n = data.shape
+traces = data
+nsample,ntraces = traces.shape
+
+
+# Merge data
+if np.remainder(ntraces,2.0):
+    print ('odd')
+    npaires = int( (ntraces-1)/2)
+else:
+    npaires = int(ntraces/2)
+
+# combine 10kV and 40kV data (assuming two adjacent columns)
+k=0
+merged_data = np.zeros((nsample,npaires))
+
+for i in np.arange(0,npaires*2,2):
+    merged_data[:,k]=np.sum(traces[:,i:i+1],axis=1) 
+    print(i,i+1)
+    k = k+1
+
+
+
+for traceno in np.arange(0,npaires):
+    # Prepare our data to be used in the filter #####################
+    trace = merged_data[:,traceno] # get the proper trace in our file 
+    ch = np.linspace(1,nsample,num=nsample) # Assign channel numbers 
+    ch = ch[~np.isnan(trace)] # ignore the channels where there is no data
+    trace = trace[~np.isnan(trace)] # ignore traces where there is no data
+    # Save our merged data
+    np.savetxt(rdir+'CSV/merged/'+'merged-raw-'+fname+'-paire-'+str(traceno)+'.csv',np.transpose([ch,trace]),delimiter=',')
+#################################################################
+
+    ynoise, trace_clean = gigul.remove_background(ns,scale,trace,o,rdir + 'CSV/denoised/'+'denoised-'+fname+'-paire-'+str(traceno),ch)
+    gigul.show_clean_trace (ch,trace,ynoise,trace_clean,rdir+'PNG/'+fname+'_paire'+str(traceno))
+    
+#methode 1 (donne l'ensemble)
+Ecart_type = np.std(merged_data, dtype=np.float64)
+print(Ecart_type)
+    
+#methode 2 fait avec  http://www.johndcook.com/standard_deviation.html
+"""class RunningStats:
+
+    def __init__(self):
+        self.n = 0
+        self.old_me = 0
+        self.new_me = 0
+        self.old_s = 0
+        self.new_s = 0
+
+    def clear(self):
+        self.n = 0
+
+    def push(self, x):
+        self.n += 1
+
+        if self.n == 1:
+            self.old_me = self.new_me = x
+            self.old_s = 0
+        else:
+            self.new_me = self.old_m + (x - self.old_me) / self.n
+            self.new_s = self.old_s + (x - self.old_me) * (x - self.new_me)
+
+            self.old_me = self.new_me
+            self.old_s = self.new_s
+
+    def mean(self):
+        return self.new_me if self.n else 0.0
+
+    def variance(self):
+        return self.new_s / (self.n - 1) if self.n > 1 else 0.0
+
+    def standard_deviation(self):
+        return math.sqrt(self.variance())
+
+rs = RunningStats()
+rs.push(merged_data[:,0])
+mean = rs.mean()
+variance = rs.variance()
+stdev = rs.standard_deviation()
+
+print(f'Mean: {mean}, Variance: {variance}, Std. Dev.: {stdev}')
+#Me donne Variance et Stdev = 0 mais a marché une fois... j'ai pas réussi a le refaire depuis
+"""
+
+#Methode 3 fait avec welford's algorithm
+
+
+class OnlineVariance(object):
+
+    def __init__(self, iterable=None, ddof=1):
+        self.ddof, self.n, self.mean, self.M2 = ddof, 0, 0.0, 0.0
+        if iterable is not None:
+            for datum in iterable:
+                self.include(datum)
+
+    def include(self, datum):
+        self.n += 1
+        self.delta = datum - self.mean
+        self.mean += self.delta / self.n
+        self.M2 += self.delta * (datum - self.mean)
+
+    @property
+    def variance(self):
+        return self.M2 / (self.n - self.ddof)
+
+    @property
+    def std(self):
+        return np.sqrt(self.variance)
+    
+ov = OnlineVariance(ddof=0)
+for d in merged_data:
+    ov.include(d)
+std = ov.std
+print(std)    
+
+#encore une fois j'arrive a faire l'écart type pour chacune des traces mais pas des points individuels.
