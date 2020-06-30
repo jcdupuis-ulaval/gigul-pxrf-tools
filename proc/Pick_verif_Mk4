@@ -1,61 +1,63 @@
 # -*- coding: utf-8 -*-
 """
-Created on Tue Jun 16 13:12:35 2020
+Created on Tue Jun 30 09:23:25 2020
 
 @author: debth
 """
-
-
-#importer les bons utilitaires
+"fonctionne qu'avec 5 analyses pour le moment"
 import numpy as np
-import matplotlib.pyplot as plt
-import gigul_pxrf_tools as gigul
-import statistics 
-from statistics import stdev
 import os
 
-#importer les datas 
 # File setup for data and results################################
-fname ='merged-raw-TDCAEXD332886Z-paire-0'
-ddir = '../results/peaks/'
-rdir = '../results/'
-idir = '../results/CSV/merged/'
-fname_peaks = 'picks_denoised-TDCAEXD332886Z-paire-0.csv'
-
-# load the data file 
-print ('Processing file : '+idir+fname+'.csv')
-data_brute=np.genfromtxt(idir+fname+'.csv',delimiter=',')
-m,n = data_brute.shape
-traces_brute = data_brute[:,1:n]
-nsample,ntraces_brute = traces_brute.shape
-data_peaks = np.genfromtxt(ddir+fname_peaks,delimiter=',')
-
+rdir = '../results/CSV/merged/'
+idir = '../results/peaks/'
+cdir = '../results/peaks/Verification/'
 # Filter parameters #############################################
-ns=50               # Width of the window for noise estimate
-scale = 0.05        # SNR Threshold
-o = 1               # Order of the noise approximation 
-#################################################################
+flist_raw = os.listdir(path=rdir)
+flist_peaks = os.listdir(path=idir)
+flist_peaksall = os.listdir(path=cdir)
 
-#estimation de la moyenne mobile 
+i=0
 
-for traceno in np.arange(0,ntraces_brute):
-    # Prepare our data to be used in the filter #####################
-    trace = traces_brute[:,traceno] # get the proper trace in our file 
-    ch = np.linspace(1,nsample,num=nsample) # Assign channel numbers 
-    ch = ch[~np.isnan(trace)] # ignore the channels where there is no data
-    trace = trace[~np.isnan(trace)] # ignore traces where there is no data
-    np.savetxt(rdir+'CSV/merged/'+'merged-raw-'+fname+'-paire-'+str(traceno)+'.csv',np.transpose([ch,trace]),delimiter=',')
+#Faire le fichier de travail
+
+for fname in flist_raw:
+    raw_data=np.genfromtxt(rdir+fname,delimiter=',')
+    peaks = np.genfromtxt(idir+flist_peaks[i],delimiter=',')   
+    m,n = peaks.shape
+    nanalyse = np.zeros((m,1),dtype=float)
+    nanalyse[:,0]= (0+i)
+    peaksall = np.column_stack((peaks,nanalyse))
+    np.savetxt(cdir+'peaksall-'+fname+'i'+'.csv', peaksall, delimiter=',')
+    i=i+1
+
+i=0
+
+#combiner le tout en un seul array
+for fname in flist_peaksall:
+    full1=np.genfromtxt(cdir+flist_peaksall[i],delimiter=',')
+    full2=np.genfromtxt(cdir+flist_peaksall[i+1],delimiter=',')
+    full3=np.genfromtxt(cdir+flist_peaksall[i+2],delimiter=',')
+    full4=np.genfromtxt(cdir+flist_peaksall[i+3],delimiter=',')
+    full5=np.genfromtxt(cdir+flist_peaksall[i+4],delimiter=',')
+    npeaks=len(full1)+len(full2)+len(full3)+len(full4)+len(full5)
+    full=np.zeros((npeaks,3),dtype=float)
+    full_tuple=(full1,full2,full3,full4,full5)
+    full=np.vstack(full_tuple)
+    fullsort=full[full[:,0].argsort()]
     
-    ynoise, trace_clean = gigul.remove_background(ns,scale,trace,o,rdir + 'CSV/denoised/'+'denoised-'+fname+'-paire-'+str(traceno),ch)
-    gigul.show_clean_trace (ch,trace,ynoise,trace_clean,rdir+'PNG/'+fname+'_paire'+str(traceno))
-    
+#Maintenant on fait une vérification avec le pic du fer de la qualité d'analyse
+def find_nearest(array, value):
+    array = np.asarray(array)
+    idx = (np.abs(array - value)).argmin()
+    return array[idx]
+x=fullsort[:,0]
+pm=np.array([+1,-1])
+value=321
+output = fullsort[(x>320)&(x<322)]
 
-     
-#################################################################
-C=traces_brute.tolist()
-D=ynoise.tolist()
-Ecart_type = statistics.stdev(C, xbar=D)
-    
-
-
-
+#Maintenant on regarde l'écart type pour les valeurs trouver 
+  
+print(np.mean(output[:,1]))
+print(np.var(output[:,1]))
+print(np.std(output[:,1]))
