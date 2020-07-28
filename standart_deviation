@@ -1,5 +1,4 @@
 # -*- coding: utf-8 -*-
-# -*- coding: utf-8 -*-
 """
 Created on Tue Jul 28 07:14:08 2020
 
@@ -7,12 +6,9 @@ Created on Tue Jul 28 07:14:08 2020
 """
 
 
-import pandas as pd
 import matplotlib.pyplot as plt
-from matplotlib import style
 import numpy as np
 import gigul_pxrf_tools as gigul
-import math
 
 # File setup for data and results################################
 fname ='TDCAEXD332886Z'
@@ -67,280 +63,46 @@ for traceno in np.arange(0,npaires):
 
 data0=data[:,0]
 
-ax1 = plt.subplot2grid((1,1), (0,0))
-
-
-ax1 = plt.subplot2grid((2,1), (0,0))
-ax2 = plt.subplot2grid((2,1), (0,0), sharex=ax1)
-rol0mean = pd.Series(data0).rolling(window=10).mean()
-rol0std = pd.Series(data0).rolling(window=10).std()
-
-
-
-fig, ax1 = plt.subplots()
-ax2=ax1.twinx()
-ax1.plot(data0, 'r-')
-ax1.plot(rol0mean, 'g-')
-ax2.plot(rol0std, 'b-')
-ax1.set_xlabel('bande KeV')
-ax1.set_ylabel('mobile mean count', color='g')
-ax2.set_ylabel('mobile standard deviation count', color='b')
-plt.grid()
-plt.show()
-
-data1=data[:,1]
-
-ax1 = plt.subplot2grid((1,1), (0,0))
-
-
-ax1 = plt.subplot2grid((2,1), (0,0))
-ax2 = plt.subplot2grid((2,1), (0,0), sharex=ax1)
-rol1mean = pd.Series(data1).rolling(window=10).mean()
-rol1std = pd.Series(data1).rolling(window=10).std()
-
-
-
-fig, ax1 = plt.subplots()
-ax2=ax1.twinx()
-ax1.plot(data1, 'r-')
-ax1.plot(rol1mean, 'g-')
-ax2.plot(rol1std, 'b-')
-ax1.set_xlabel('bande KeV')
-ax1.set_ylabel('mobile mean count', color='g')
-ax2.set_ylabel('mobile standard deviation count', color='b')
-plt.grid()
-plt.show()
-
-data2=data[:,2]
-
-ax1 = plt.subplot2grid((1,1), (0,0))
-
-
-ax1 = plt.subplot2grid((2,1), (0,0))
-ax2 = plt.subplot2grid((2,1), (0,0), sharex=ax1)
-rol2mean = pd.Series(data2).rolling(window=10).mean()
-rol2std = pd.Series(data2).rolling(window=10).std()
-
-
-
-fig, ax1 = plt.subplots()
-ax2=ax1.twinx()
-ax1.plot(data2, 'r-')
-ax1.plot(rol2mean, 'g-')
-ax2.plot(rol2std, 'b-')
-ax1.set_xlabel('bande KeV')
-ax1.set_ylabel('mobile mean count', color='g')
-ax2.set_ylabel('mobile standard deviation count', color='b')
-plt.grid()
-plt.show()
-
-data3=data[:,3]
-
-ax1 = plt.subplot2grid((1,1), (0,0))
-
-
-ax1 = plt.subplot2grid((2,1), (0,0))
-ax2 = plt.subplot2grid((2,1), (0,0), sharex=ax1)
-rol3mean = pd.Series(data3).rolling(window=10).mean()
-rol3std = pd.Series(data3).rolling(window=10).std()
-
-
-
-fig, ax1 = plt.subplots()
-ax2=ax1.twinx()
-ax1.plot(data3, 'r-')
-ax1.plot(rol3mean, 'g-')
-ax2.plot(rol3std, 'b-')
-ax1.set_xlabel('bande KeV')
-ax1.set_ylabel('mobile mean count', color='g')
-ax2.set_ylabel('mobile standard deviation count', color='b')
-plt.grid()
-plt.show()
-
-data4=data[:,4]
-
-ax1 = plt.subplot2grid((1,1), (0,0))
-
-
-ax1 = plt.subplot2grid((2,1), (0,0))
-ax2 = plt.subplot2grid((2,1), (0,0), sharex=ax1)
-rol4mean = pd.Series(data4).rolling(window=10).mean()
-rol4std = pd.Series(data4).rolling(window=10).std()
-
-
-
-fig, ax1 = plt.subplots()
-ax2=ax1.twinx()
-ax1.plot(data4, 'r-')
-ax1.plot(rol4mean, 'g-')
-ax2.plot(rol4std, 'b-')
-ax1.set_xlabel('bande KeV')
-ax1.set_ylabel('mobile mean count', color='g')
-ax2.set_ylabel('mobile standard deviation count', color='b')
-plt.grid()
-plt.show()
-
-data5=data[:,5]
-
-ax1 = plt.subplot2grid((1,1), (0,0))
-
-
-ax1 = plt.subplot2grid((2,1), (0,0))
-ax2 = plt.subplot2grid((2,1), (0,0), sharex=ax1)
-rol5mean = pd.Series(data5).rolling(window=10).mean()
-rol5std = pd.Series(data5).rolling(window=10).std()
-
-
-
-fig, ax1 = plt.subplots()
-ax2=ax1.twinx()
-ax1.plot(data5, 'r-')
-ax1.plot(rol5mean, 'g-')
-ax2.plot(rol5std, 'b-')
-ax1.set_xlabel('bande KeV')
-ax1.set_ylabel('mobile mean count', color='g')
-ax2.set_ylabel('mobile standard deviation count', color='b')
-plt.grid()
-plt.show()
-
-data6=data[:,6]
-
-ax1 = plt.subplot2grid((1,1), (0,0))
-
-
-ax1 = plt.subplot2grid((2,1), (0,0))
-ax2 = plt.subplot2grid((2,1), (0,0), sharex=ax1)
-rol6mean = pd.Series(data6).rolling(window=10).mean()
-rol6std = pd.Series(data6).rolling(window=10).std()
-
-
-
-fig, ax1 = plt.subplots()
-ax2=ax1.twinx()
-ax1.plot(data6, 'r-')
-ax1.plot(rol6mean, 'g-')
-ax2.plot(rol6std, 'b-')
-ax1.set_xlabel('bande KeV')
-ax1.set_ylabel('mobile mean count', color='g')
-ax2.set_ylabel('mobile standard deviation count', color='b')
-plt.grid()
-plt.show()
-
-data7=data[:,7]
-
-ax1 = plt.subplot2grid((1,1), (0,0))
-
-
-ax1 = plt.subplot2grid((2,1), (0,0))
-ax2 = plt.subplot2grid((2,1), (0,0), sharex=ax1)
-rol7mean = pd.Series(data7).rolling(window=10).mean()
-rol7std = pd.Series(data7).rolling(window=10).std()
-
-
-
-fig, ax1 = plt.subplots()
-ax2=ax1.twinx()
-ax1.plot(data7, 'r-')
-ax1.plot(rol7mean, 'g-')
-ax2.plot(rol7std, 'b-')
-ax1.set_xlabel('bande KeV')
-ax1.set_ylabel('mobile mean count', color='g')
-ax2.set_ylabel('mobile standard deviation count', color='b')
-plt.grid()
-plt.show()
-
-data8=data[:,8]
-
-ax1 = plt.subplot2grid((1,1), (0,0))
-
-
-ax1 = plt.subplot2grid((2,1), (0,0))
-ax2 = plt.subplot2grid((2,1), (0,0), sharex=ax1)
-rol8mean = pd.Series(data8).rolling(window=10).mean()
-rol8std = pd.Series(data8).rolling(window=10).std()
-
-
-
-fig, ax1 = plt.subplots()
-ax2=ax1.twinx()
-ax1.plot(data8, 'r-')
-ax1.plot(rol8mean, 'g-')
-ax2.plot(rol8std, 'b-')
-ax1.set_xlabel('bande KeV')
-ax1.set_ylabel('mobile mean count', color='g')
-ax2.set_ylabel('mobile standard deviation count', color='b')
-plt.grid()
-plt.show()
-
-data9=data[:,9]
-
-ax1 = plt.subplot2grid((1,1), (0,0))
-
-
-ax1 = plt.subplot2grid((2,1), (0,0))
-ax2 = plt.subplot2grid((2,1), (0,0), sharex=ax1)
-rol9mean = pd.Series(data9).rolling(window=10).mean()
-rol9std = pd.Series(data9).rolling(window=10).std()
-
-
-
-fig, ax1 = plt.subplots()
-ax2=ax1.twinx()
-ax1.plot(data9, 'r-')
-ax1.plot(rol9mean, 'g-')
-ax2.plot(rol9std, 'b-')
-ax1.set_xlabel('bande KeV')
-ax1.set_ylabel('mobile mean count', color='g')
-ax2.set_ylabel('mobile standard deviation count', color='b')
-plt.grid()
-plt.show()
-
-data10=data[:,10]
-
-ax1 = plt.subplot2grid((1,1), (0,0))
-
-
-ax1 = plt.subplot2grid((2,1), (0,0))
-ax2 = plt.subplot2grid((2,1), (0,0), sharex=ax1)
-rol10mean = pd.Series(data10).rolling(window=10).mean()
-rol10std = pd.Series(data10).rolling(window=10).std()
-
-
-
-fig, ax1 = plt.subplots()
-ax2=ax1.twinx()
-ax1.plot(data10, 'r-')
-ax1.plot(rol10mean, 'g-')
-ax2.plot(rol10std, 'b-')
-ax1.set_xlabel('bande KeV')
-ax1.set_ylabel('mobile mean count', color='g')
-ax2.set_ylabel('mobile standard deviation count', color='b')
-plt.grid()
-plt.show()
-
-data11=data[:,11]
-
-ax1 = plt.subplot2grid((1,1), (0,0))
-
-
-ax1 = plt.subplot2grid((2,1), (0,0))
-ax2 = plt.subplot2grid((2,1), (0,0), sharex=ax1)
-rol11mean = pd.Series(data11).rolling(window=10).mean()
-rol11std = pd.Series(data11).rolling(window=10).std()
-
-
-
-fig, ax1 = plt.subplots()
-ax2=ax1.twinx()
-ax1.plot(data11, 'r-')
-ax1.plot(rol11mean, 'g-')
-ax2.plot(rol1std, 'b-')
-ax1.set_xlabel('bande KeV')
-ax1.set_ylabel('mobile mean count', color='g')
-ax2.set_ylabel('mobile standard deviation count', color='b')
-plt.grid()
-plt.show()
-
-
-
-plt.show()
+#ax1 = plt.subplot2grid((1,1), (0,0))
+
+
+#ax1 = plt.subplot2grid((2,1), (0,0))
+#ax2 = plt.subplot2grid((2,1), (0,0), sharex=ax1)
+#rol0mean = pd.Series(data0).rolling(window=10).mean()
+#rol0std = pd.Series(data0).rolling(window=10).std()
+
+
+
+#fig, ax1 = plt.subplots()
+#ax2=ax1.twinx()
+#ax1.plot(data0, 'r-')
+#ax1.plot(rol0mean, 'g.')
+#ax2.plot(rol0std, 'b-')
+#ax1.set_xlabel('bande KeV')
+#ax1.set_ylabel('mobile mean count', color='g')
+#ax2.set_ylabel('mobile standard deviation count', color='b')
+#plt.grid()
+#plt.show()
+
+n=len(data)
+i=0
+for i in np.arange(n):
+    window=5
+    means=gigul.rolmean(data[:,i:i+1],5)
+    STD=gigul.rolstd(data[:,i:i+1],5)
+    ax1 = plt.subplot2grid((2,1), (0,0))
+    ax2 = plt.subplot2grid((2,1), (0,0), sharex=ax1)
+    fig, ax1 = plt.subplots()
+    ax2=ax1.twinx()
+    ax1.plot(data, 'r-')
+    ax1.plot(means, 'g.')
+    ax2.plot(STD, 'b-')
+    ax1.set_xlabel('bande KeV')
+    ax1.set_ylabel('mobile mean count', color='g')
+    ax2.set_ylabel('mobile standard deviation count', color='b')
+    plt.grid()
+    plt.show()
+    while i < 10:
+        i=(i+1)
+    if i == 10:
+        print ('stop')
