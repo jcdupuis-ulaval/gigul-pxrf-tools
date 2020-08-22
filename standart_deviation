@@ -1,108 +1,71 @@
 # -*- coding: utf-8 -*-
 """
-Created on Tue Jul 28 07:14:08 2020
+Created on Tue Aug 11 10:10:14 2020
 
 @author: debth
 """
 
-
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
 import gigul_pxrf_tools as gigul
+import os
+
 
 # File setup for data and results################################
-fname ='TDCAEXD332886Z'
-ddir = '../data/Terrain/'
+#fname ='TDCAEXD332886Z'
+ddir = '../results/CSV/merged/'
 rdir = '../results/'
+idir = '../results/peaks/'
 
-# Filter parameters #############################################
-ns=50              # Width of the window for noise estimate
-scale = 5e-7        # SNR Threshold
-o = 1             # Order of the noise approximation 
-#################################################################
 # load the data file 
-print ('Processing file : '+ddir+fname+'.csv')
-datas=np.genfromtxt(ddir+fname+'.csv',delimiter=';',skip_header=1)
-a,b= datas.shape
-data=datas[:,1:b]
-m,n = data.shape
-traces = data
-nsample,ntraces = traces.shape
-
-
-# Merge data
-if np.remainder(ntraces,2.0):
-    print ('odd')
-    npaires = int( (ntraces-1)/2)
-else:
-    npaires = int(ntraces/2)
-
-# combine 10kV and 40kV data (assuming two adjacent columns)
-k=0
-merged_data = np.zeros((nsample,npaires))
-
-for i in np.arange(0,npaires*2,2):
-    merged_data[:,k]=np.sum(traces[:,i:i+1],axis=1) 
-    print(i,i+1)
-    k = k+1
-
-
-
-for traceno in np.arange(0,npaires):
-    # Prepare our data to be used in the filter #####################
-    trace = merged_data[:,traceno] # get the proper trace in our file 
-    ch = np.linspace(1,nsample,num=nsample) # Assign channel numbers 
-    ch = ch[~np.isnan(trace)] # ignore the channels where there is no data
-    trace = trace[~np.isnan(trace)] # ignore traces where there is no data
-    # Save our merged data
-    np.savetxt(rdir+'CSV/merged/'+'merged-raw-'+fname+'-paire-'+str(traceno)+'.csv',np.transpose([ch,trace]),delimiter=',')
-#################################################################
-
-    ynoise, trace_clean = gigul.remove_background(ns,scale,trace,o,rdir + 'CSV/denoised/'+'denoised-'+fname+'-paire-'+str(traceno),ch)
-    gigul.show_clean_trace (ch,trace,ynoise,trace_clean,rdir+'PNG/'+fname+'_paire'+str(traceno))
-
-data0=data[:,0]
-
-#ax1 = plt.subplot2grid((1,1), (0,0))
-
-
-#ax1 = plt.subplot2grid((2,1), (0,0))
-#ax2 = plt.subplot2grid((2,1), (0,0), sharex=ax1)
-#rol0mean = pd.Series(data0).rolling(window=10).mean()
-#rol0std = pd.Series(data0).rolling(window=10).std()
-
-
-
-#fig, ax1 = plt.subplots()
-#ax2=ax1.twinx()
-#ax1.plot(data0, 'r-')
-#ax1.plot(rol0mean, 'g.')
-#ax2.plot(rol0std, 'b-')
-#ax1.set_xlabel('bande KeV')
-#ax1.set_ylabel('mobile mean count', color='g')
-#ax2.set_ylabel('mobile standard deviation count', color='b')
-#plt.grid()
-#plt.show()
-
-n=len(data)
+flist = os.listdir(path=ddir)
+print (flist)
+flist_peaks = os.listdir(path=idir)
+print (flist_peaks)
+peakszero=np.zeros((2048,2))
 i=0
+
+for fname in flist_peaks:
+    peaks= np.genfromtxt(idir+flist_peaks[i],delimiter=',')
+    c,d= peaks.shape
+    
+for fname in flist:
+    datas=np.genfromtxt(ddir+fname, delimiter=',')
+    a,b= datas.shape
+    data=datas[:,1:5]
+    m,n = data.shape
+    traces = data
+    nsample,ntraces = traces.shape
+    print ('Processing file : '+ddir+fname)
+    data0=data[:,0]
+    n=len(data)
+    
 for i in np.arange(n):
-    window=5
-    means=gigul.rolmean(data[:,i:i+1],5)
-    STD=gigul.rolstd(data[:,i:i+1],5)
-    ax1 = plt.subplot2grid((2,1), (0,0))
-    ax2 = plt.subplot2grid((2,1), (0,0), sharex=ax1)
-    fig, ax1 = plt.subplots()
-    ax2=ax1.twinx()
-    ax1.plot(data, 'r-')
-    ax1.plot(means, 'g.')
-    ax2.plot(STD, 'b-')
-    ax1.set_xlabel('bande KeV')
-    ax1.set_ylabel('mobile mean count', color='g')
-    ax2.set_ylabel('mobile standard deviation count', color='b')
-    plt.grid()
-    plt.show()
-    while i < 10:
-        i=(i+1)
-    if i == 10:
+    i=0
+    while i <= 4:
+        window=5
+        means=gigul.rolmean(data[:,i:i+1],5)
+        STD=gigul.rolstd(data[:,i:i+1],5)
+        ax1 = plt.subplot2grid((2,1), (0,0))
+        ax2 = plt.subplot2grid((2,1), (0,0), sharex=ax1)
+        fig, ax1 = plt.subplots()
+        ax2=ax1.twinx()
+        ax1.plot(data, 'r-')
+        ax1.plot(means, 'g:')
+        ax1.plot(peaks[:,0],peaks[:,1],'+',color='k')
+        ax2.plot(STD, 'b-')
+        ax1.set_xlabel('bande KeV')
+        ax1.set_ylabel('mobile mean count', color='g')
+        ax2.set_ylabel('mobile standard deviation count', color='b')
+        plt.grid()
+        plt.show()
+        np.savetxt(rdir+'CSV/mean_std/'+'mean_std-'+fname+'-paire-'+str(i)+'.csv',np.transpose([means,STD]),delimiter=',')
+        verif_alpha=pd.DataFrame({'peaks':peaks[:,0],'means':means[peaks[:,0]],'STD':STD[peaks[:,0]]})
+        i= (i+1)
+    if i == 5:
         print ('stop')
+        break
+            
+
+
