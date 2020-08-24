@@ -42,7 +42,6 @@ for fname in flist:
     n=len(data)
     
 for i in np.arange(n):
-    i=0
     while i <= 4:
         window=5
         means=gigul.rolmean(data[:,i:i+1],5)
@@ -61,11 +60,19 @@ for i in np.arange(n):
         plt.grid()
         plt.show()
         np.savetxt(rdir+'CSV/mean_std/'+'mean_std-'+fname+'-paire-'+str(i)+'.csv',np.transpose([means,STD]),delimiter=',')
-        verif_alpha=pd.DataFrame({'peaks':peaks[:,0],'means':means[peaks[:,0]],'STD':STD[peaks[:,0]]})
-        i= (i+1)
+        peaks_round=np.round(peaks[:,0],decimals=0,out=None)
+        peaks_final=pd.DataFrame({'peaks':peaks_round})
+        peaks_means=pd.DataFrame({'peaks_means':means[peaks_round]})
+        peaks_STD=pd.DataFrame({'peaks_STD':STD[peaks_round]})
+        verif_alpha = [peaks_means, peaks_STD]
+        headers = ["means","STD"]
+        verif= pd.concat(verif_alpha, axis=1, keys=headers)
+        print(verif)
+        i = (i+1)
+        if i <= 4:
+            continue
     if i == 5:
         print ('stop')
         break
             
-
 
