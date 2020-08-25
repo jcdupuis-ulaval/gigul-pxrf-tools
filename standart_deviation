@@ -23,37 +23,37 @@ flist = os.listdir(path=ddir)
 print (flist)
 flist_peaks = os.listdir(path=idir)
 print (flist_peaks)
-peakszero=np.zeros((2048,2))
+#numéro d'analyse
 i=0
-
-
-for fname in flist_peaks:
-    peaks= np.genfromtxt(idir+flist_peaks[i],delimiter=',')
-    c,d= peaks.shape
-    
-for fname in flist:
-    datas=np.genfromtxt(ddir+fname, delimiter=',')
-    a,b= datas.shape
-    data=datas[:,1:5]
-    m,n = data.shape
-    traces = data
-    nsample,ntraces = traces.shape
-    print ('Processing file : '+ddir+fname)
-    data0=data[:,0]
-    n=len(data)
-    
+#nombre d'analyse
+n=6
+#Facteur de compairaison pour moyenne et écart type
+f=5
+  #test  
 for i in np.arange(n):
     while i <= 4:
+        peaks= [np.genfromtxt(idir+flist_peaks[i],delimiter=',') for fname in flist_peaks]
+        peak=peaks[i]
+        peaks_v=peaks[1]
+        peaks_value=np.round(peak,decimals=0,out=None)
+        datas=[np.genfromtxt(ddir+fname, delimiter=',') for fname in flist]
+        data=datas[i]
+        m,n = data.shape
+        traces = data
+        nsample,ntraces = traces.shape
+        print ('Processing file : '+ddir+fname)
+        data0=data[:,0]
+        n=len(data)
         window=5
-        means=gigul.rolmean(data,5)
-        STD=gigul.rolstd(data,5)
+        means=gigul.rolmean(data,f)
+        STD=gigul.rolstd(data,f)
         ax1 = plt.subplot2grid((2,1), (0,0))
         ax2 = plt.subplot2grid((2,1), (0,0), sharex=ax1)
         fig, ax1 = plt.subplots()
         ax2=ax1.twinx()
         ax1.plot(data, 'r-')
         ax1.plot(means, 'g:')
-        ax1.plot(peaks[:,0],peaks[:,1],'+',color='k')
+        ax1.plot(peak[:,0],peak[:,1],'+',color='k')
         ax2.plot(STD, 'b-')
         ax1.set_xlabel('bande KeV')
         ax1.set_ylabel('mobile mean count', color='g')
@@ -61,19 +61,19 @@ for i in np.arange(n):
         plt.grid()
         plt.show()
         np.savetxt(rdir+'CSV/mean_std/'+'mean_std-'+fname+'-paire-'+str(i)+'.csv',np.transpose([means,STD]),delimiter=',')
-        peaks_round=np.round(peaks[:,0],decimals=0,out=None)
+        peaks_value_final=pd.DataFrame({'peaks_value':peaks_value[:,1]},index=peaks_value[:,0])
+        peaks_round=np.round(peak[:,0],decimals=0,out=None)
         peaks_final=pd.DataFrame({'peaks':peaks_round})
         peaks_means=pd.DataFrame({'peaks_means':means[peaks_round]})
         peaks_STD=pd.DataFrame({'peaks_STD':STD[peaks_round]})
-        verif_alpha = [peaks_means, peaks_STD]
-        headers = ["means","STD"]
+        verif_alpha = [peaks_value_final, peaks_means, peaks_STD]
+        headers = ["peaks_value","means","STD"]
         verif= pd.concat(verif_alpha, axis=1, keys=headers)
         print(verif)
-        i = (i+1)
-        if i <= 4:
-            continue
-    if i == 5:
-        print ('stop')
-        break
+        if i <= 5:
+            i = (i+1)
+        if i == 6:
+            print ('stop')
+            break
             
 
