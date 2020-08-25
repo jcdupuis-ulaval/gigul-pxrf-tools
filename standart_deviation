@@ -13,7 +13,7 @@ import os
 
 
 # File setup for data and results################################
-#fname ='TDCAEXD332886Z'
+fname ='TDCAEXD332886Z'
 ddir = '../results/CSV/merged/'
 rdir = '../results/'
 idir = '../results/peaks/'
@@ -25,6 +25,7 @@ flist_peaks = os.listdir(path=idir)
 print (flist_peaks)
 peakszero=np.zeros((2048,2))
 i=0
+
 
 for fname in flist_peaks:
     peaks= np.genfromtxt(idir+flist_peaks[i],delimiter=',')
@@ -44,8 +45,8 @@ for fname in flist:
 for i in np.arange(n):
     while i <= 4:
         window=5
-        means=gigul.rolmean(data[:,i:i+1],5)
-        STD=gigul.rolstd(data[:,i:i+1],5)
+        means=gigul.rolmean(data,5)
+        STD=gigul.rolstd(data,5)
         ax1 = plt.subplot2grid((2,1), (0,0))
         ax2 = plt.subplot2grid((2,1), (0,0), sharex=ax1)
         fig, ax1 = plt.subplots()
