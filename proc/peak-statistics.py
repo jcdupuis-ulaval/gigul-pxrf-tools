@@ -44,7 +44,7 @@ fid = np.array(fid).astype(int)
 values = np.hstack((np.vstack(fid),np.vstack(ch),np.vstack(amp)))
 dtype = [('fid',int),('ch',float),('amp',float)]
 data = np.array(values,dtype=dtype)
-
+'''
 data_sorted = np.sort(data,order='ch')
 m,n = data_sorted.shape
 for i in np.arange(m):
@@ -52,7 +52,7 @@ for i in np.arange(m):
 #df = pd.DataFrame(data,columns = ['fid','ch','amp'])
 
 print (data)
-
+'''
 # At this stage we have all of the peaks that were found 
 plt.scatter(ch,amp,c=fid)
 plt.show()
