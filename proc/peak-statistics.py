@@ -1,15 +1,16 @@
 # -*- coding: utf-8 -*-
 """
 Created on Wed Sep 09 2020
-Routine to compute the statistics about the peaks that were found in the previous steps. This information will be used to 
-bin the data and to see if some of the peaks are more prevalent than others 
+Routine to collate the peaks that were found in the previous steps and compute basic statistics on the channel number and 
+the mean amplitude that were found previously. When peaks are repeatable (e.g. found in multiple measurements) they are saved
+to a csv file  (fout) for later PCA analysis  
 
 @author: chdup58
 """
 
 import numpy as np
 import matplotlib.pyplot as plt
-import pandas as pd
+import gigul_pxrf_tools as gigul
 import csv
 import os
 
@@ -17,11 +18,13 @@ import os
 pdir = '../results/peaks/'
 # File list of all our directories ######################################
 flist_peaks = os.listdir(path=pdir) # Peaks that were identified 
+fout = pdir+'peaks-for-PCA'
 #########################################################################
 i=0  # counter required to keep track of the matching files in our loop
 ch = []
 amp = []
 fid = []
+trsh = 4
 
 for fname in flist_peaks:
     # We want to construct a database of peaks that were measured for the different measurements that were done 
@@ -54,54 +57,30 @@ data = np.hstack((np.vstack(fid),np.vstack(ch),np.vstack(amp)))
 #dtype = [('fid',int),('ch',float),('amp',float)]
 #data = np.array(values,dtype=dtype)
 
-def calc_stats (raw):
-    data=raw[raw[:,1].argsort()] # start by sorting the data to get similar channels next to each other
-    m,n = data.shape
-    d = np.zeros((m,1))   # Initialize the distance matrix 
-    for i in np.arange(m-1): # Compute the distance between adjacent channel numbers needed for the grouping 
-        d[i] = data[i+1,1]-data[i,1]
-
-    ch_edges = np.where(d>1)[0] # Define the edges of the data set that should be averaged
-    m = len(ch_edges) # Setup the counting variable for going through the list of edges
-    # Setup all of the vectors we are going to fill
-    mu_ch = np.zeros((m,1))  # Average channel number
-    mu_amp = np.zeros((m,1)) # Average amplitude at a given channel
-    std_amp = np.zeros((m,1)) # Standard deviation on the amplitude at a given channel
-    std_ch = np.zeros((m,1))  # Standard deviation on the position of a given channel
-    n = np.zeros((m,1))       # Number of observations that have contributed to the solution
-    for i in np.arange(m-1):  # Traverse the list to identify the data subsets to group for analysis
-        ch = data[ch_edges[i]+1:ch_edges[i+1],1]
-        amp = data[ch_edges[i]+1:ch_edges[i+1],2]
-        n[i]=len(ch)          # Note the number of items that contribute to the computed value 
-        if len(ch)>=1:        # If we have more than one item in our list we can compute the mean and the standard deviation
-            mu_ch[i] = np.mean(ch)
-            std_ch[i] = np.std(ch)
-            mu_amp[i] = np.mean(amp)
-            std_amp[i] = np.std(amp)
-        elif len(ch)<1:       # If we only have one value we can assign the single value to the list for completeness 
-            mu_ch[i] = data[ch_edges[i],1]
-            mu_amp[i] =data[ch_edges[i],2]
-            n[i]=1
-    return mu_ch, std_ch, mu_amp,std_amp,n
-
-mu_ch,std_ch,mu_amp,std_amp,n = calc_stats(data)
+# Compute the stastics on the peaks that we have identified
+mu_ch,std_ch,mu_amp,std_amp,n = gigul.calc_stats(data)
+# Compare the average peaks to the peaks that were identified 
 plt.subplot(2,1,1)
 plt.plot(mu_ch,mu_amp,'+')
 plt.plot(data[:,1],data[:,2],'.')
+plt.legend('mean','originals')
 plt.subplot(2,1,2)
 plt.plot(mu_ch,n,'.')
+plt.ylabel('Number of points in mean')
 plt.show()
 print (n)
-'''
-data_sorted = np.sort(data,order='ch')
-m,n = data_sorted.shape
-for i in np.arange(m):
-    print (i)
-#df = pd.DataFrame(data,columns = ['fid','ch','amp'])
 
-print (data)
-'''
-# At this stage we have all of the peaks that were found 
-#plt.scatter(ch,amp,c=fid)
-#plt.show()
+# For our PCA analysis we will want only the peaks that can be seen in all our datasets (e.g. are repeatable)
+
+data_clean = np.hstack((mu_ch[np.where(n>trsh)[0]],
+std_ch[np.where(n>trsh)[0]],
+mu_amp[np.where(n>trsh)[0]],
+std_amp[np.where(n>trsh)[0]]))
+
+# Saves the data that is ready for PCA 
+# C1 : Mean channel 
+# C2 : STD channel
+# C3 : Mean Amplitude
+# C4 : STD Amplitude
+np.savetxt(fout+'.csv',data_clean,delimiter=',')
 
