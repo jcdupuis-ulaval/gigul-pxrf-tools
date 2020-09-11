@@ -37,13 +37,61 @@ for fname in flist_peaks:
         
         i=i+1
 
-# The channel numbers may not be integers because of the picking process, we reduce the data to integer channels only 
-ch = np.round(np.array(ch).astype(float),decimals=0)
+ch = np.round(np.array(ch).astype(float),decimals=2)
 amp = np.array(amp).astype(float)
 fid = np.array(fid).astype(int)
-values = np.hstack((np.vstack(fid),np.vstack(ch),np.vstack(amp)))
-dtype = [('fid',int),('ch',float),('amp',float)]
-data = np.array(values,dtype=dtype)
+
+# At this stage we have all of the peaks that were found and stored in files 
+fig, ax = plt.subplots()
+scatter = ax.scatter(ch,amp,c=fid)
+legend1 = ax.legend(*scatter.legend_elements(),title='Paires')
+ax.add_artist(legend1)
+
+plt.show()
+
+# Combine the data in one array 
+data = np.hstack((np.vstack(fid),np.vstack(ch),np.vstack(amp)))
+#dtype = [('fid',int),('ch',float),('amp',float)]
+#data = np.array(values,dtype=dtype)
+
+def calc_stats (raw):
+    data=raw[raw[:,1].argsort()] # start by sorting the data to get similar channels next to each other
+    m,n = data.shape
+    d = np.zeros((m,1))   # Initialize the distance matrix 
+    for i in np.arange(m-1): # Compute the distance between adjacent channel numbers needed for the grouping 
+        d[i] = data[i+1,1]-data[i,1]
+
+    ch_edges = np.where(d>1)[0] # Define the edges of the data set that should be averaged
+    m = len(ch_edges) # Setup the counting variable for going through the list of edges
+    # Setup all of the vectors we are going to fill
+    mu_ch = np.zeros((m,1))  # Average channel number
+    mu_amp = np.zeros((m,1)) # Average amplitude at a given channel
+    std_amp = np.zeros((m,1)) # Standard deviation on the amplitude at a given channel
+    std_ch = np.zeros((m,1))  # Standard deviation on the position of a given channel
+    n = np.zeros((m,1))       # Number of observations that have contributed to the solution
+    for i in np.arange(m-1):  # Traverse the list to identify the data subsets to group for analysis
+        ch = data[ch_edges[i]+1:ch_edges[i+1],1]
+        amp = data[ch_edges[i]+1:ch_edges[i+1],2]
+        n[i]=len(ch)          # Note the number of items that contribute to the computed value 
+        if len(ch)>=1:        # If we have more than one item in our list we can compute the mean and the standard deviation
+            mu_ch[i] = np.mean(ch)
+            std_ch[i] = np.std(ch)
+            mu_amp[i] = np.mean(amp)
+            std_amp[i] = np.std(amp)
+        elif len(ch)<1:       # If we only have one value we can assign the single value to the list for completeness 
+            mu_ch[i] = data[ch_edges[i],1]
+            mu_amp[i] =data[ch_edges[i],2]
+            n[i]=1
+    return mu_ch, std_ch, mu_amp,std_amp,n
+
+mu_ch,std_ch,mu_amp,std_amp,n = calc_stats(data)
+plt.subplot(2,1,1)
+plt.plot(mu_ch,mu_amp,'+')
+plt.plot(data[:,1],data[:,2],'.')
+plt.subplot(2,1,2)
+plt.plot(mu_ch,n,'.')
+plt.show()
+print (n)
 '''
 data_sorted = np.sort(data,order='ch')
 m,n = data_sorted.shape
@@ -54,6 +102,6 @@ for i in np.arange(m):
 print (data)
 '''
 # At this stage we have all of the peaks that were found 
-plt.scatter(ch,amp,c=fid)
-plt.show()
+#plt.scatter(ch,amp,c=fid)
+#plt.show()
 
