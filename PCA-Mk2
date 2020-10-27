@@ -1,0 +1,151 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Mon Oct 26 17:47:30 2020
+
+@author: debth
+"""
+
+
+#import pandas as pd
+import numpy as np
+#import gigul_pxrf_tools as gigul
+import os
+
+# Machine learning libraries
+#from sklearn.preprocessing import scale
+#from sklearn.decomposition import FactorAnalysis
+from sklearn.decomposition import PCA
+from sklearn.decomposition import IncrementalPCA
+from sklearn.decomposition import KernelPCA
+#from sklearn.cluster import KMeans
+
+# Visualization libraries
+import matplotlib.pyplot as plt
+from mpl_toolkits.mplot3d import Axes3D
+#import seaborn as sns
+
+# File setup for data and results################################
+rdir = '../result_backup/Statistics/'
+spectral_list = os.listdir(path=rdir)
+pca=np.zeros([1,2])
+i=0
+n=len(spectral_list)
+
+
+for fname in spectral_list:
+    while i<n:
+        data = np.genfromtxt(rdir+spectral_list[i],delimiter=',')
+        pca = np.concatenate((data,pca),axis=0)
+        i=i+1
+        if i==n:
+            break
+fig0=plt.figure()
+plt.scatter(pca[:,0],pca[:,1])
+
+#quelques tests pour se pratiquer (pas prendre comme du cash)
+#introduction a l'analyse par composante principale
+principal_axis=PCA(n_components=2)
+principal_axis.fit(pca)
+print(principal_axis.components_)
+print(principal_axis.explained_variance_)
+def draw_vector(v0, v1, ax=None):
+    ax = ax or plt.gca()
+    arrowprops=dict(arrowstyle='->',
+                    linewidth=2,
+                    shrinkA=0, shrinkB=0)
+    ax.annotate('', v1, v0, arrowprops=arrowprops)
+
+# plot data
+fig1=plt.scatter(pca[:, 0], pca[:, 1], alpha=0.2)
+plt.title('fig1-data brute et vecteur des 2 PCA')
+
+for length, vector in zip(principal_axis.explained_variance_, principal_axis.components_):
+    v = vector * 3 * np.sqrt(length)
+    draw_vector(principal_axis.mean_, principal_axis.mean_ + v)
+
+#réduction dimentionnel
+principal_axis = PCA(n_components=1)
+principal_axis.fit(pca)
+pca_principal_axis = principal_axis.transform(pca)
+print("original shape:   ", pca.shape)
+print("transformed shape:", pca_principal_axis.shape)
+
+pca_new = principal_axis.inverse_transform(pca_principal_axis)
+fig2=plt.figure()
+plt.title('fig2-data-brute')
+plt.scatter(pca[:,0],pca[:,1], alpha=0.1)
+fig3=plt.figure()
+plt.title('fig3-data-reduit')
+plt.scatter(pca_new[:,0],pca_new[:,1], alpha=1)
+
+#Classer selon les composantes principales.
+
+
+pca.data.shape
+print(pca.data.shape)
+principal_axis = PCA(2)
+projected=principal_axis.fit_transform(pca.data)
+print(pca.data.shape)
+print(principal_axis)
+#ne marche pas encore
+plt4=plt.figure()
+plt.title('fig4-linear-pca')
+plt.scatter(projected[:,0],projected[:,1],
+            edgecolor='none', alpha=0.5,
+            cmap=plt.cm.get_cmap('magma',10))
+plt.xlabel('component 1')
+plt.ylabel('component 2')
+plt.colorbar();
+
+#essayons de trouver le nombre de composant 
+principal_axis = PCA().fit(pca.data)
+plt5=plt.figure()
+plt.title('fig5-nombre de composante')
+plt.plot(np.cumsum(principal_axis.explained_variance_ratio_))
+plt.xlabel('number of components')
+plt.ylabel('cumulative explained variance')
+plt.show()
+
+print('Il va falloir changer la methode car la variance ne peux simplement être expliquer selon la position des pics. Il va falloir segmenter (mais cela reviens a faire le même principe que la detection par géochimie.')
+print('essayons alors le modèle incrémentale')
+#incremental decomposition
+inc_principal_axis=IncrementalPCA(n_components=2, batch_size=1)
+pca_inc=inc_principal_axis.partial_fit(pca)
+pca_inc_com=pca_inc.components_
+plt6=plt.figure()
+plt.title('fig6-incremental-pca')
+plt.scatter(pca[:,0],pca[:,1],
+            edgecolor='none', alpha=0.5,
+            cmap=plt.cm.get_cmap('magma',10))
+for length, vector in zip(pca_inc.explained_variance_, pca_inc.components_):
+    v = vector * 3 * np.sqrt(length)
+    draw_vector(pca_inc.mean_, pca_inc.mean_ + v)
+    
+print('on remarque que le PCA incrémentale donne la même chose')
+
+#kernel decomposition
+ker_principal_axis=KernelPCA(n_components=10
+                             , kernel='linear')
+pca_ker=ker_principal_axis.fit_transform(pca)
+pca_alpha=ker_principal_axis.alphas_
+pca_alpha.shape
+pca_lambdas=ker_principal_axis.lambdas_
+pca_lambdas.shape
+print(pca_lambdas)
+#donnée transformée et placer selon le PCA
+plt7=plt.figure()
+plt.title('fig7-kernel-pca')
+plt.scatter(pca_ker[:,0],pca_ker[:,1],
+            edgecolor='none', alpha=0.5,
+            cmap=plt.cm.get_cmap('magma',10))
+plt.xlabel('component 1')
+plt.ylabel('component 2')
+#Alphas
+plt8=plt.figure()
+plt.title('fig8-alphas')
+plt.scatter(pca_alpha[:,0],pca_alpha[:,1],
+            c='b', alpha=0.5)
+             
+print('on remarque que le PCA kernel donne la même chose, et que on arrive pas a trouver plus que 2 composantes principales')
+
+
