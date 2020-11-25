@@ -6,8 +6,10 @@ This set of tools are used to process and pXRF data.
 """
 
 import numpy as np
+import pandas as pd
 import matplotlib.pyplot as plt
 from scipy import interpolate
+
 
 def scale_trace(trace):
     scaled_trace = (trace-(abs(trace).min()))/(abs(trace).max()-abs(trace).min())
@@ -104,6 +106,10 @@ def show_clean_trace (ch,trace,ynoise,trace_clean,fname):
     plt.subplot(3,1,3)
     plt.plot(ch,trace_clean)
     plt.grid()
+    plt.xlabel('Channels')
+    plt.ylabel('Total Counts')  
+    plt.title(fname,loc='center',x=0.5,y=-1)
+    plt.tight_layout
     print ('Saving figure : '+'denoised_'+fname+'.png')
     plt.savefig(fname+'.png', format='png')
 
@@ -114,11 +120,13 @@ def show_peaks(data,ch,peaks,peak_est,fname):
     plt.legend(['final-pick','first-estimate'])
     plt.plot(ch,data,ch,smooth(data))
     plt.xlabel('Channels')
-    plt.ylabel('CPS')
+    plt.ylabel('Total Counts')
+    plt.title(fname,loc='center',x=0.5,y=-0.25)
     plt.grid()
+    print ('Saving figure : '+fname[:-3]+'.png')
+    plt.savefig(fname[:-3]+'.png', format='png')
     plt.show()
-    print ('Saving figure : '+fname+'.png')
-    plt.savefig(fname+'.png', format='png')
+
 
 def smooth (data):
     n = len(data)
@@ -129,7 +137,7 @@ def smooth (data):
         sdata[i]=(data[i-1]+(2*data[i])+data[i+1])/4.0
     return sdata
 
-def estimate_peaks (data,ch,amp_sensitivity,slope_sensitivity):
+def estimate_peaks (data,ch,amp_sensitivity,slope_sensitivity,fname):
     # Need to change to include the channels 
     #ch = np.linspace(1,len(data),num=len(data)) # Assign channel numbers 
     data_smooth =smooth(smooth(smooth(data)))
@@ -146,9 +154,10 @@ def estimate_peaks (data,ch,amp_sensitivity,slope_sensitivity):
     ax1.plot(ch,np.ones(len(ch))*amp_threshold,'-r')
     ax2.plot(ch, dd, 'b-')
     ax2.plot(ch,np.ones(len(ch))*slope_threshold,'-r')
-    ax1.set_xlabel('ch')
+    ax1.set_xlabel('Channels')
     ax1.set_ylabel('data', color='g')
     ax2.set_ylabel('1st deriv', color='b')
+    plt.title(fname,loc='center',x=0.5,y=-0.25)
     plt.grid()
     plt.show()
     
@@ -192,6 +201,63 @@ def refine_peaks (data,peak_est,peak_half_width,ch,fname):
             print ('You cannot sub-divide your dataset on a peak')
             break
     return peaks
+
+def rolmean (data,window):
+    (m,n)=data.shape
+    for i in np.arange(n):
+        analyse = data[:,i]
+        rolmean = pd.Series(analyse).rolling(window).mean()
+        print ('saving rolmean to file')
+        #np.savetxt(rolmean,delimiter=',')
+    return rolmean
+
+def rolstd (data,window):
+    (m,n)=data.shape
+    for i in np.arange(n):
+        analyse = data[:,i]
+        rolstd = pd.Series(analyse).rolling(window).std()
+        print ('saving rolstd to file')
+        #np.savetxt(rolstd,delimiter=',')
+    return rolstd
+
+
+# Routine to compute the statistics on the collated peaks  
+def calc_stats (raw):
+    data=raw[raw[:,1].argsort()] # start by sorting the data to get similar channels next to each other
+    m,n = data.shape
+    d = np.zeros((m,1))   # Initialize the distance matrix 
+    for i in np.arange(m-1): # Compute the distance between adjacent channel numbers needed for the grouping 
+        d[i] = data[i+1,1]-data[i,1]
+
+    ch_edges = np.where(d>1)[0] # Define the edges of the data set that should be averaged
+    m = len(ch_edges) # Setup the counting variable for going through the list of edges
+    # Setup all of the vectors we are going to fill
+    mu_ch = np.zeros((m,1))  # Average channel number
+    mu_amp = np.zeros((m,1)) # Average amplitude at a given channel
+    std_amp = np.zeros((m,1)) # Standard deviation on the amplitude at a given channel
+    std_ch = np.zeros((m,1))  # Standard deviation on the position of a given channel
+    n = np.zeros((m,1))       # Number of observations that have contributed to the solution
+    for i in np.arange(m-1):  # Traverse the list to identify the data subsets to group for analysis
+       if i == 0: # It is the first time in this loop 
+            ch = data[0:ch_edges[i]+1,1]
+            amp = data[0:ch_edges[i]+1,2]
+       elif (i>0):
+            ch = data[ch_edges[i]+1:ch_edges[i+1]+1,1]
+            amp = data[ch_edges[i]+1:ch_edges[i+1]+1,2]
+       n[i]=len(ch)          # Note the number of items that contribute to the computed value 
+        
+       if len(ch)>=1:        # If we have more than one item in our list we can compute the mean and the standard deviation
+            mu_ch[i] = np.mean(ch)
+            std_ch[i] = np.std(ch)
+            mu_amp[i] = np.mean(amp)
+            std_amp[i] = np.std(amp)
+       elif len(ch)<1:       # If we only have one value we can assign the single value to the list for completeness 
+            mu_ch[i] = data[ch_edges[i],1]
+            mu_amp[i] =data[ch_edges[i],2]
+            n[i]=1
+    return mu_ch, std_ch, mu_amp,std_amp,n
+
+
 
 
 ################################################################# 
