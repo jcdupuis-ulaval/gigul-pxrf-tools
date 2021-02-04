@@ -1,0 +1,95 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Wed Nov 18 15:24:30 2020
+
+@author: debth
+"""
+
+
+# Ici on importe les librarys
+import pandas as pd
+import numpy as np
+import os
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+# Machine learning libraries
+from sklearn.decomposition import PCA
+from sklearn.preprocessing import StandardScaler
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import confusion_matrix
+from sklearn.metrics import accuracy_score
+from sklearn.metrics import accuracy_score, plot_confusion_matrix, confusion_matrix
+from sklearn import metrics
+from mpl_toolkits.mplot3d import Axes3D
+from matplotlib import cm
+from collections import OrderedDict
+from random import randint
+
+# File setup for data
+rdir = '../results/statistics/'
+cdir = '../results/PNG/histogramme/'
+spectral_list = os.listdir(path=rdir)
+data_terrain=np.zeros([1,2])
+i=0
+n=len(spectral_list)
+index=[]
+mean_channel=[]
+STD_channel=[]
+mean_amplitude=[]
+STD_amplitude=[]
+groups=[]
+data_frames=pd.DataFrame({'i':index,'mean_channel':mean_channel,'STD_channel':STD_channel,'mean_amplitude':mean_amplitude,'STD_amplitude':STD_amplitude, 'groups':groups})
+for fname in spectral_list:
+        data = np.genfromtxt(rdir+spectral_list[i],delimiter=',')
+        mean_channel=data[:,0]
+        STD_channel=data[:,1]
+        mean_amplitude=data[:,2]
+        STD_amplitude = data[:,3]
+        x=len(data[:,0])
+        ind=(np.full((x,1),i))
+        index=ind[:,0]
+        data_frame=pd.DataFrame({'i':index,'mean_channel':mean_channel,'STD_channel':STD_channel,'mean_amplitude':mean_amplitude,'STD_amplitude':STD_amplitude})
+        data_frames=pd.concat((data_frames,data_frame),axis=0)
+        i=i+1
+        if i < n-1:
+           continue
+        if i == n-1:
+           break
+       
+ # Data cleaning
+ 
+data_frames["mean_channel"] = data_frames["mean_channel"].round(decimals=0)
+bins = np.arange(0,2064,16)
+data_frames["groups"] = pd.cut(data_frames.mean_channel, bins).astype("category")
+
+grouped = data_frames.groupby("groups").size().reset_index()
+grouped.rename(columns={"groups": "group", 0 : 'count'}, inplace=True)
+grouped_new = grouped.drop(grouped[grouped["count"] <= 4].index)
+groups = {pd.DataFrame() for group in grouped_new}
+
+    
+
+
+# # # First data visualisation
+
+# plt0=sns.FacetGrid(data = data_frames, height=6, hue='i')
+# plt0.map(plt.scatter, 'mean_channel', 'mean_amplitude').set(xscale = 'log',
+#                                   yscale = 'log')
+# plt.title('variation of medians amplitudes for each peaks detected in the field')
+# plt.xlabel('Mean channel')
+# plt.ylabel('Mean amplitudes')
+# plt.show()
+
+# # Here we clean the data of the Nan values 
+# # and keep the same index for the dataset and statue
+# data_frames["groups"] = data_frames['groups'].cat.codes
+# features = ['mean_channel', 'STD_channel', 'mean_amplitude','STD_amplitude']
+# data_features_prim = data_frames.loc[:, features].values
+# data_target = data_frames.loc[:, ['groups']]
+
+# # We check the area under each bins
+
+
+
