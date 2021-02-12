@@ -8,6 +8,8 @@ This set of tools are used to process and pXRF data.
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy import interpolate
+import os
+import csv
 
 def scale_trace(trace):
     scaled_trace = (trace-(abs(trace).min()))/(abs(trace).max()-abs(trace).min())
@@ -230,3 +232,111 @@ def calc_stats (raw):
     return mu_ch, std_ch, mu_amp,std_amp,n
 
 ################################################################# 
+
+# Routine to merge the different files that were generated previously that contain the peaks 
+def merge_peak_data (pdir):
+    flist_peaks = os.listdir(path=pdir) # Peaks that were identified 
+    i=0  # counter required to keep track of the matching files in our loop
+    ch = []
+    amp = []
+    fid = []
+    FFID = []
+    print ('--------------------------------------------------------')
+    print ('Compiling results for files in directory %s' %pdir)
+    print ('--------------------------------------------------------')
+
+    for fname in flist_peaks:
+     # We want to construct a database of peaks that were measured for the different measurements that were done 
+     # Let's look at the files that are present 
+    
+        print ('Retrieving data from file :  %s' %fname)
+
+
+        with open(pdir+flist_peaks[i]) as data_in:
+            csv_reader = csv.reader(data_in,delimiter=',')
+            line_count = 0
+            for row in csv_reader:
+                fid.append(i)
+                ch.append(row[0])
+                amp.append(row[1])
+            # We want to save the name of the original file and the pair of readings 
+            ffid = fname.split("-")
+            FFID.append(ffid[1] +'-' + str(i))
+            i=i+1
+
+    print ('--------------------------------------------------------')
+
+    ch = np.round(np.array(ch).astype(float),decimals=2)
+    amp = np.array(amp).astype(float)
+    fid = np.array(fid).astype(int)
+    data = np.hstack((np.vstack(fid),np.vstack(ch),np.vstack(amp)))
+    return data, FFID
+
+# Routine identify the peaks that fall within bins and retain the ones that are above a given threshold value 
+
+def generate_table_for_pca(data,fout,nbins,trsh,imputation, FFID):
+
+    # Now that we have our data we can count the number of occurences in each bin 
+    # this can simply be done using plt.hist
+
+    x = plt.hist(data[:,1],nbins)
+
+    # We want to find the bins where the number of observations exceeds our threshold value 
+    idx = np.where(x[0]>trsh)
+    m,n = np.shape(idx)
+
+
+    # Now that we have the indices of the bins that exceed the thershold we want to split our data back into their individual
+    # pairs of measurements and determine the average amplitudes for the bins where we expect to have data according to the bin edges
+
+    pca_matrix_mean = np.zeros(((len(FFID),n-1)))
+    pca_matrix_std = np.zeros(((len(FFID),n-1)))
+    pca_matrix_bins = np.zeros(((len(FFID),n-1)))
+    for i in np.arange(len(FFID)):
+        meas = data[np.where(data[:,0]==i)]
+        print ('--------------------------------------------------------')
+        print ('Looking into dataset %s' %FFID[i])
+        print ('--------------------------------------------------------')
+        for j in np.arange(n-1):
+            lower_edge = x[1][idx[0][j]]
+            upper_edge = x[1][idx[0][j+1]]
+            pca_matrix_bins [i,j]= lower_edge + (upper_edge-lower_edge)/2.0
+            # print our bin edges so that we can see QA where they fall
+            print('Looking for peak in bin  %2.4f to %2.4f' %(lower_edge,upper_edge))
+            amp = meas[np.where((meas[:,1]>=lower_edge) & (meas[:,1]<=upper_edge )),1]
+            if amp.size>1: # we have many points that fall in this bin
+                pca_matrix_mean[i,j] = np.mean(meas[np.where((meas[:,1]>=lower_edge) & (meas[:,1]<=upper_edge )),2]) # compute the average amplitude of the points that fall in this bin
+                pca_matrix_std[i,j] = np.std(meas[np.where((meas[:,1]>=lower_edge) & (meas[:,1]<=upper_edge )),2])  # compute the std of the points that fall in this bin 
+            elif amp.size == 0.0: # We did not find a peak that has this value in this dataset - enter imputation value 
+                pca_matrix_mean[i,j] = imputation
+            else:
+                pca_matrix_mean[i,j] = meas[np.where((meas[:,1]>=lower_edge) & (meas[:,1]<=upper_edge )),2]
+                pca_matrix_std[i,j] = np.nan
+            
+            print('Found this peak %2.4f' %pca_matrix_bins[i,j])
+            print('Average amplitude is  %2.4f' %pca_matrix_mean[i,j])
+            print ('Saving this peak in bin %2.4f' %pca_matrix_bins[i,j])
+            print ('-------------------------------------------------')
+    
+
+    # Now that we have all of the data in our matrices we want to write these to files that can be used for PCA analysis
+    # Since PCA could be done with other software, it's useful to put a header at the top of the file and identify each measurement
+    # with the analysis number. 
+
+    f = open(fout,'w')
+
+    hdr = np.array2string(pca_matrix_bins[0,:],separator=',')
+    hdr = hdr.replace('[','Reading-ID,')
+    hdr = hdr.replace(']','')
+    hdr = hdr.replace('\n','')
+    f.write(hdr+'\n')
+
+    for i in np.arange(len(FFID)):
+
+        reading = np.array2string(pca_matrix_mean[i,:],separator=',')
+        reading = reading.replace('[',FFID[i]+',')
+        reading = reading.replace('\n','')
+        reading = reading.replace(']','')
+        f.write(reading+'\n')
+
+    f.close()
