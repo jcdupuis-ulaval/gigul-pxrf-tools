@@ -14,7 +14,7 @@ import gigul_pxrf_tools as gigul
 import csv
 import os
 
-# File setup for data ################################
+# File setup for data ##################################################
 pdir = '../results/peaks/'
 odir = '../results/PCA-tables/'
 # File list of all our directories ######################################
@@ -30,9 +30,15 @@ ch = []
 amp = []
 fid = []
 FFID = []
+
+print ('--------------------------------------------------------')
+print ('Compiling results for files in directory %s' %pdir)
+print ('--------------------------------------------------------')
+
 for fname in flist_peaks:
     # We want to construct a database of peaks that were measured for the different measurements that were done 
     # Let's look at the files that are present 
+    
     print ('Retrieving data from file :  %s' %fname)
 
 
@@ -47,6 +53,8 @@ for fname in flist_peaks:
         ffid = fname.split("-")
         FFID.append(ffid[1] +'-' + str(i))
         i=i+1
+
+print ('--------------------------------------------------------')
 
 ch = np.round(np.array(ch).astype(float),decimals=2)
 amp = np.array(amp).astype(float)
@@ -84,13 +92,15 @@ pca_matrix_std = np.zeros(((len(FFID),n-1)))
 pca_matrix_bins = np.zeros(((len(FFID),n-1)))
 for i in np.arange(len(FFID)):
     meas = data[np.where(data[:,0]==i)]
+    print ('--------------------------------------------------------')
     print ('Looking into dataset %s' %FFID[i])
+    print ('--------------------------------------------------------')
     for j in np.arange(n-1):
         lower_edge = x[1][idx[0][j]]
         upper_edge = x[1][idx[0][j+1]]
         pca_matrix_bins [i,j]= lower_edge + (upper_edge-lower_edge)/2.0
         # print our bin edges so that we can see QA where they fall
-        print('Selecting from %2.4f to %2.4f' %(lower_edge,upper_edge))
+        print('Looking for peak in bin  %2.4f to %2.4f' %(lower_edge,upper_edge))
         amp = meas[np.where((meas[:,1]>=lower_edge) & (meas[:,1]<=upper_edge )),1]
         if amp.size>1: # we have many points that fall in this bin
             pca_matrix_mean[i,j] = np.mean(meas[np.where((meas[:,1]>=lower_edge) & (meas[:,1]<=upper_edge )),2]) # compute the average amplitude of the points that fall in this bin
@@ -101,9 +111,10 @@ for i in np.arange(len(FFID)):
             pca_matrix_mean[i,j] = meas[np.where((meas[:,1]>=lower_edge) & (meas[:,1]<=upper_edge )),2]
             pca_matrix_std[i,j] = np.nan
             
-        print('found this peak %2.4f' %pca_matrix_bins[i,j])
-        print('amplitude is  %2.4f' %pca_matrix_mean[i,j])
-        print ('Saving in bin %2.4f' %pca_matrix_bins[i,j])
+        print('Found this peak %2.4f' %pca_matrix_bins[i,j])
+        print('Average amplitude is  %2.4f' %pca_matrix_mean[i,j])
+        print ('Saving this peak in bin %2.4f' %pca_matrix_bins[i,j])
+        print ('-------------------------------------------------')
         #file.write (%s,#2.4f,)
 
 
