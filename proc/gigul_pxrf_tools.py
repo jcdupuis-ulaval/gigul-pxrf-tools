@@ -270,7 +270,7 @@ def merge_peak_data (pdir):
     amp = np.array(amp).astype(float)
     fid = np.array(fid).astype(int)
     data = np.hstack((np.vstack(fid),np.vstack(ch),np.vstack(amp)))
-    return data, FFID
+    return data, FFID,i
 
 # Routine identify the peaks that fall within bins and retain the ones that are above a given threshold value 
 
