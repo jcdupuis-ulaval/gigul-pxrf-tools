@@ -1,0 +1,148 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Tue Mar 16 14:54:17 2021
+
+@author: debth
+"""
+
+
+# Ici on importe les librarys
+import os 
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+import matplotlib.colors as colors
+import matplotlib.cm as cmx
+
+# Machine learning libraries
+from mpl_toolkits.mplot3d import Axes3D
+from sklearn.decomposition import PCA
+from sklearn.preprocessing import StandardScaler
+from sklearn.metrics import confusion_matrix
+from sklearn.metrics import accuracy_score
+from matplotlib.pyplot import cm
+
+# File setup for data
+rdir = '../results/PCA-tables/'
+cdir = '../results/PCA-datas/'
+pdir = '../results/peaks/'
+fname = 'PCA-mean.csv'
+XRF_import = pd.read_csv(rdir+fname, delimiter=',')
+flist_peaks = os.listdir(path=pdir)
+flist_peaks = np.asarray(flist_peaks)
+
+# Data Cleaning 
+XRF_import["Reading-ID"] = flist_peaks
+mean_value = XRF_import.mean(axis=0)
+
+# Now we standardise the dataset before doing PCA
+
+y = XRF_import.loc[:,["Reading-ID"]].values
+XRF_import = XRF_import.drop(columns=["Reading-ID"])
+#XRF_import = XRF_import.drop(columns=[" 334.90414062", "  511.30632812"])
+columns_name = XRF_import.columns.tolist()
+columns_name = {'band': columns_name[:]}
+n = len(XRF_import.columns)
+x = XRF_import.transpose()
+mean_value = x.mean(axis=1)
+x = x.replace(-999, mean_value)
+data_features = StandardScaler().fit_transform(x)
+
+# PCA with n components
+
+pca = PCA(n_components=n)
+data_frames_PCA = pca.fit_transform(data_features)
+data_frames_comp_PCA = pd.DataFrame(data = data_frames_PCA)
+eigenvalues = pca.explained_variance_
+var = np.cumsum(np.round(eigenvalues,decimals=3)*100)
+res = []
+for key in columns_name.keys():
+    res.append(columns_name[key])
+print ("the list of values is : " + str(res))
+columns_name = np.array(res, dtype='float64')
+columns_name = columns_name.transpose()
+columns_name = columns_name[:,0]*0.01953125
+# each bin is 0.3125Kev so +/- 0.15625KeV from mean values
+data_frames_comp_PCA_T = data_frames_comp_PCA.iloc[:,0:3]
+data_frames_comp_PCA_T.columns = ['PCA1','PCA2','PCA3']
+#data_frames_comp_PCA_T['mean_band'] = columns_name
+data_frames_comp_PCA_T['mean_energy'] = columns_name
+data_frames_comp_PCA_T['mean_band'] = ['Si','K','Ca','Ti-V','Cr','Fe','Zn-Ga-Ge','Rb','Sr','Y-Rb','Zr','Nb','Mo','Nb-Mo-Tc','Rh-Tc','Pd-Ru-Rh' ]
+data_frames_comp_PCA_T['index'] = np.arange(n)
+
+
+
+# All KOI PCA visualisation
+
+fig = plt.figure(figsize = (8, 8))
+ax1 = Axes3D(fig)
+ax1.set_xlabel('Principal component 1', fontsize = 15)
+ax1.set_ylabel('Principal component 2', fontsize = 15)
+ax1.set_zlabel('Principal component 3', fontsize = 15)
+ax1.set_title('3 components PCA, all field samples', fontsize = 20)
+targetname = data_frames_comp_PCA_T['mean_band']
+targets = np.arange(n)
+colors = cm.nipy_spectral(np.linspace(0,1,n))
+
+for target, color in zip(targets, colors):
+    indicesToKeep = data_frames_comp_PCA_T['index'] == target
+    ax1.scatter(data_frames_comp_PCA_T.loc[indicesToKeep,'PCA1'], data_frames_comp_PCA_T.loc[indicesToKeep,'PCA2'],
+                data_frames_comp_PCA_T.loc[indicesToKeep,'PCA3'], c = color, s = 75)
+ax1.legend(targetname)
+plt.savefig('All_KOI_PCA_Field.png')
+
+# 2 PCA comparaison 
+
+# PCA1 VS PCA2
+
+fig = plt.figure(figsize = (8,8))
+ax2 = fig.add_subplot(1,1,1) 
+ax2.set_xlabel('Principal component 1', fontsize = 15)
+ax2.set_ylabel('Principal component 2', fontsize = 15)
+ax2.set_title('2 components PCA, all KOI', fontsize = 20)
+
+for target, color in zip(targets, colors):
+    indicesToKeep = data_frames_comp_PCA_T['index'] == target
+    ax2.scatter(data_frames_comp_PCA_T.loc[indicesToKeep,'PCA1'], data_frames_comp_PCA_T.loc[indicesToKeep,'PCA2'], c = color)
+ax2.legend(targetname)
+ax2.grid()
+plt.axvline(x=0, color='k')
+plt.axhline(y=0, color='k')
+plt.savefig('PCA1_PCA2_Field.png')
+plt.show()
+
+# PCA2 VS PCA3
+
+fig = plt.figure(figsize = (8,8))
+ax3 = fig.add_subplot(1,1,1) 
+ax3.set_xlabel('Principal component 2', fontsize = 15)
+ax3.set_ylabel('Principal component 3', fontsize = 15)
+ax3.set_title('2 components PCA, all KOI', fontsize = 20)
+
+for target, color in zip(targets, colors):
+    indicesToKeep = data_frames_comp_PCA_T['index'] == target
+    ax3.scatter(data_frames_comp_PCA_T.loc[indicesToKeep,'PCA2'], data_frames_comp_PCA_T.loc[indicesToKeep,'PCA3'], c = color)
+ax3.legend(targetname)
+plt.axvline(x=0, color='k')
+plt.axhline(y=0, color='k')
+ax3.grid()
+plt.savefig('PCA2_PCA3_Field.png')
+plt.show()
+
+#PCA3 VS PCA4
+
+fig = plt.figure(figsize = (8,8))
+ax4 = fig.add_subplot(1,1,1) 
+ax4.set_xlabel('Principal component 1', fontsize = 15)
+ax4.set_ylabel('Principal component 3', fontsize = 15)
+ax4.set_title('2 components PCA, all KOI', fontsize = 20)
+for target, color in zip(targets, colors):
+    indicesToKeep = data_frames_comp_PCA_T['index'] == target
+    ax4.scatter(data_frames_comp_PCA_T.loc[indicesToKeep,'PCA1'], data_frames_comp_PCA_T.loc[indicesToKeep,'PCA3'], c = color)
+ax4.legend(targetname)
+ax4.grid()
+plt.axvline(x=0, color='k', linewidth=2)
+plt.axhline(y=0, color='k', linewidth=2)
+plt.savefig('PCA1_PCA3_Field.png')
+plt.show()
