@@ -1,0 +1,499 @@
+
+# -*- coding: utf-8 -*-
+"""
+Created on Thu Apr 29 14:05:54 2021
+
+@author: debth
+"""
+
+# Ici on importe les librarys
+import os 
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+import matplotlib.colors as colors
+import matplotlib.cm as cmx
+
+# Machine learning libraries
+from mpl_toolkits.mplot3d import Axes3D
+from sklearn.decomposition import PCA
+from sklearn.preprocessing import StandardScaler
+from sklearn.metrics import confusion_matrix
+from sklearn.metrics import accuracy_score
+from matplotlib.pyplot import cm
+from missingpy import MissForest
+from cycler import cycler 
+
+# File setup for data
+rdir = '../results/PCA-tables/'
+cdir = '../results/PCA-datas/'
+pdir = '../results/peaks/'
+idir = '../results/CSV/PCA/'
+fname = 'PCA-mean.csv'
+XRF_import = pd.read_csv(rdir+fname, delimiter=',')
+flist_peaks = os.listdir(path=pdir)
+flist_peaks = np.asarray(flist_peaks)
+#types = XRF_import.loc[:,["Types"]].values
+
+
+# Data Cleaning 
+XRF_import["Reading-ID"] = flist_peaks
+
+
+# Now we standardise the dataset before doing PCA
+
+y = XRF_import.loc[:,["Reading-ID"]].values
+XRF_import = XRF_import.drop(columns=["Reading-ID"])
+#XRF_import = XRF_import.drop(columns=["Types"])
+cols=[0,5,22,23,24,25,26,27,28,30]
+XRF_import = XRF_import.drop(XRF_import.columns[cols],axis=1)
+columns_name = XRF_import.columns.tolist()
+columns_name = {'band': columns_name[:]}
+n = len(XRF_import.columns)
+x = XRF_import.transpose()
+
+# Missing Forest Imputation
+#nan=float("NaN")
+#x[x==-999]=np.nan
+#imputer = MissForest(max_iter=10,n_estimators=27)
+#x_imputed = imputer.fit_transform(x)
+#x_imputed = pd.DataFrame(x_imputed)
+
+x_imputed = x.replace(-999, 1)
+mean_value = x_imputed.mean(axis=1)
+x_imputed = x_imputed.div(mean_value, axis=0)
+
+####### absolute scaling
+
+# def maximum_absolute_scaling(df):
+#     #Copy the dataframe
+    
+#     df_scaled = df.copy()
+    
+#     # apply maximum absolute scaling
+    
+#     for column in df.columns:
+#         df_scaled[column] = df_scaled[column]/df_scaled[column].abs().max()
+#         return df_scaled
+    
+# # fonction call
+
+# data_features = maximum_absolute_scaling(x_imputed)
+
+###### Standard Scaler
+
+data_features = StandardScaler().fit_transform(x_imputed)
+
+# PCA with n components
+
+
+
+pca = PCA(n_components=n)
+data_frames_PCA = pca.fit_transform(data_features)
+data_frames_comp_PCA = pd.DataFrame(data = data_frames_PCA)
+eigenvalues = pca.explained_variance_
+var = np.cumsum(np.round(eigenvalues,decimals=3)*100)
+res = []
+for key in columns_name.keys():
+    res.append(columns_name[key])
+print ("the list of values is : " + str(res))
+columns_name = np.array(res, dtype='float64')
+columns_name = columns_name.transpose()
+columns_name = columns_name[:,0]*0.01953125
+# each bin is 0.3125Kev so +/- 0.15625KeV from mean values
+data_frames_comp_PCA_T = data_frames_comp_PCA.iloc[:,0:6]
+data_frames_comp_PCA_T.columns = ['PCA1','PCA2','PCA3','PCA4','PCA5','PCA6']
+#data_frames_comp_PCA_T['type'] = types
+data_frames_comp_PCA_T['mean_energy'] = columns_name
+data_frames_comp_PCA_T['mean_band'] = ['Si','Th-Lα','K','Ca','Ti','V','Cr','Mn','Fe-Kα','Co,Fe-Kβ','Ni','Cu-W','Zn-Hg-Ga','As,Se','Rb','Sr','Y',
+                                       'Zr-Kα','Nb','Mo,Zr-Kβ','Ag','Sb','Ba']
+data_frames_comp_PCA_T['index'] = np.arange(n)
+data_frames_comp_PCA_T.to_csv(r'D:\My Documents\Document\Université\Projet AMARUQ\script\Python\Spectre\find-peaks-V0\results\PCA-tables\PCA_imputed.csv')
+data_frames_comp_PCA_T1,data_frames_comp_PCA_T2=np.array_split(data_frames_comp_PCA_T,2)
+
+
+
+# All KOI PCA visualisation
+
+fig1=plt.figure(figsize = (8,8))
+ax1 = Axes3D(fig1)
+ax1.set_xlabel('Principal component 1', fontsize = 15)
+ax1.set_ylabel('Principal component 2', fontsize = 15)
+ax1.set_zlabel('Principal component 3', fontsize = 15)
+ax1.set_title('3 components PCA, all samples', fontsize = 20)
+targetname = data_frames_comp_PCA_T['mean_band']
+targetname = targetname.to_numpy()
+targetname1,targetname2=np.array_split(targetname,2)
+targets = np.arange(n)
+colors = cm.nipy_spectral(np.linspace(0,1,n))
+
+for target, color in zip(targets, colors):
+    indicesToKeep = data_frames_comp_PCA_T['index'] == target
+    ax1.scatter(data_frames_comp_PCA_T1.loc[indicesToKeep,'PCA1'], data_frames_comp_PCA_T1.loc[indicesToKeep,'PCA2'],
+                data_frames_comp_PCA_T1.loc[indicesToKeep,'PCA3'], c = color, marker='o', s = 30)
+
+for target, color in zip(targets, colors):
+    indicesToKeep = data_frames_comp_PCA_T['index'] == target
+    ax1.scatter(data_frames_comp_PCA_T2.loc[indicesToKeep,'PCA1'], data_frames_comp_PCA_T2.loc[indicesToKeep,'PCA2'],
+                data_frames_comp_PCA_T2.loc[indicesToKeep,'PCA3'], c = color, marker='o',label=target, s = 30)
+
+def label_point(x,y,z,val,ax):
+    a = pd.concat({'x':data_frames_comp_PCA_T.PCA1,'y':data_frames_comp_PCA_T.PCA2,'z':data_frames_comp_PCA_T.PCA3,'val':data_frames_comp_PCA_T.mean_band}, axis=1)
+    for i, point in a.iterrows():
+        ax1.text(point['x'],point['y'],point['z'], str(point['val']))
+label_point(data_frames_comp_PCA_T.PCA1,data_frames_comp_PCA_T.PCA2,data_frames_comp_PCA_T.PCA3,data_frames_comp_PCA_T.mean_band,ax1)
+          
+plt.show()
+
+plt.savefig(idir+'All_PCA_all_samples.png')
+
+# 2 PCA comparaison 
+
+# PCA1 VS PCA2
+
+fig = plt.figure(figsize = (8,8))
+ax2 = fig.add_subplot(1,1,1) 
+ax2.set_xlabel('Principal component 1', fontsize = 15)
+ax2.set_ylabel('Principal component 2', fontsize = 15)
+ax2.set_title('2 components PCA, all samples', fontsize = 20)
+
+for target, color in zip(targets, colors):
+    indicesToKeep = data_frames_comp_PCA_T['index'] == target
+    ax2.scatter(data_frames_comp_PCA_T.loc[indicesToKeep,'PCA1'], data_frames_comp_PCA_T.loc[indicesToKeep,'PCA2'], c = color)
+    
+def label_point(x,y,val,ax):
+    a = pd.concat({'x':data_frames_comp_PCA_T.PCA1,'y':data_frames_comp_PCA_T.PCA2,'val':data_frames_comp_PCA_T.mean_band}, axis=1)
+    for i, point in a.iterrows():
+        ax2.text(point['x'],point['y'], str(point['val']))
+label_point(data_frames_comp_PCA_T.PCA1,data_frames_comp_PCA_T.PCA2,data_frames_comp_PCA_T.mean_band,ax2)
+
+
+ax2.grid()
+plt.axvline(x=0, color='k')
+plt.axhline(y=0, color='k')
+plt.savefig(idir+'PCA1_PCA2_all_samples.png')
+plt.show()
+
+# PCA2 VS PCA3
+
+fig = plt.figure(figsize = (8,8))
+ax3 = fig.add_subplot(1,1,1) 
+ax3.set_xlabel('Principal component 2', fontsize = 15)
+ax3.set_ylabel('Principal component 3', fontsize = 15)
+ax3.set_title('2 components PCA, all samples', fontsize = 20)
+
+for target, color in zip(targets, colors):
+    indicesToKeep = data_frames_comp_PCA_T['index'] == target
+    ax3.scatter(data_frames_comp_PCA_T.loc[indicesToKeep,'PCA2'], data_frames_comp_PCA_T.loc[indicesToKeep,'PCA3'], c = color)
+    
+def label_point(x,y,val,ax):
+    a = pd.concat({'x':data_frames_comp_PCA_T.PCA2,'y':data_frames_comp_PCA_T.PCA3,'val':data_frames_comp_PCA_T.mean_band}, axis=1)
+    for i, point in a.iterrows():
+        ax3.text(point['x'],point['y'], str(point['val']))
+label_point(data_frames_comp_PCA_T.PCA2,data_frames_comp_PCA_T.PCA3,data_frames_comp_PCA_T.mean_band,ax3)
+
+plt.axvline(x=0, color='k')
+plt.axhline(y=0, color='k')
+ax3.grid()
+plt.savefig(idir+'PCA2_PCA3_all_samples.png')
+plt.show()
+
+#PCA1 VS PCA3
+
+fig = plt.figure(figsize = (8,8))
+ax4 = fig.add_subplot(1,1,1) 
+ax4.set_xlabel('Principal component 1', fontsize = 15)
+ax4.set_ylabel('Principal component 3', fontsize = 15)
+ax4.set_title('2 components PCA, all samples', fontsize = 20)
+for target, color in zip(targets, colors):
+    indicesToKeep = data_frames_comp_PCA_T['index'] == target
+    ax4.scatter(data_frames_comp_PCA_T.loc[indicesToKeep,'PCA1'], data_frames_comp_PCA_T.loc[indicesToKeep,'PCA3'], c = color)
+    
+def label_point(x,y,val,ax):
+    a = pd.concat({'x':data_frames_comp_PCA_T.PCA1,'y':data_frames_comp_PCA_T.PCA3,'val':data_frames_comp_PCA_T.mean_band}, axis=1)
+    for i, point in a.iterrows():
+        ax4.text(point['x'],point['y'], str(point['val']))
+label_point(data_frames_comp_PCA_T.PCA1,data_frames_comp_PCA_T.PCA3,data_frames_comp_PCA_T.mean_band,ax4)
+
+ax4.grid()
+plt.axvline(x=0, color='k', linewidth=2)
+plt.axhline(y=0, color='k', linewidth=2)
+plt.savefig(idir+'PCA1_PCA3_all_samples.png')
+plt.show()
+
+#PCA1 VS PCA4
+
+fig = plt.figure(figsize = (8,8))
+ax5 = fig.add_subplot(1,1,1) 
+ax5.set_xlabel('Principal component 1', fontsize = 15)
+ax5.set_ylabel('Principal component 4', fontsize = 15)
+ax5.set_title('2 components PCA, all samples', fontsize = 20)
+for target, color in zip(targets, colors):
+    indicesToKeep = data_frames_comp_PCA_T['index'] == target
+    ax5.scatter(data_frames_comp_PCA_T.loc[indicesToKeep,'PCA1'], data_frames_comp_PCA_T.loc[indicesToKeep,'PCA4'], c = color)
+    
+def label_point(x,y,val,ax):
+    a = pd.concat({'x':data_frames_comp_PCA_T.PCA1,'y':data_frames_comp_PCA_T.PCA4,'val':data_frames_comp_PCA_T.mean_band}, axis=1)
+    for i, point in a.iterrows():
+        ax5.text(point['x'],point['y'], str(point['val']))
+label_point(data_frames_comp_PCA_T.PCA1,data_frames_comp_PCA_T.PCA4,data_frames_comp_PCA_T.mean_band,ax5)    
+    
+ax5.grid()
+plt.axvline(x=0, color='k', linewidth=2)
+plt.axhline(y=0, color='k', linewidth=2)
+plt.savefig(idir+'PCA1_PCA4_all_samples.png')
+plt.show()
+
+#PCA1 VS PCA5
+
+fig = plt.figure(figsize = (8,8))
+ax6 = fig.add_subplot(1,1,1) 
+ax6.set_xlabel('Principal component 1', fontsize = 15)
+ax6.set_ylabel('Principal component 5', fontsize = 15)
+ax6.set_title('2 components PCA, all samples', fontsize = 20)
+for target, color in zip(targets, colors):
+    indicesToKeep = data_frames_comp_PCA_T['index'] == target
+    ax6.scatter(data_frames_comp_PCA_T.loc[indicesToKeep,'PCA1'], data_frames_comp_PCA_T.loc[indicesToKeep,'PCA5'], c = color)
+    
+def label_point(x,y,val,ax):
+    a = pd.concat({'x':data_frames_comp_PCA_T.PCA1,'y':data_frames_comp_PCA_T.PCA5,'val':data_frames_comp_PCA_T.mean_band}, axis=1)
+    for i, point in a.iterrows():
+        ax6.text(point['x'],point['y'], str(point['val']))
+label_point(data_frames_comp_PCA_T.PCA1,data_frames_comp_PCA_T.PCA5,data_frames_comp_PCA_T.mean_band,ax6)     
+    
+ax6.grid()
+plt.axvline(x=0, color='k', linewidth=2)
+plt.axhline(y=0, color='k', linewidth=2)
+plt.savefig(idir+'PCA1_PCA5_all_samples.png')
+plt.show()
+
+#PCA1 VS PCA6
+
+fig = plt.figure(figsize = (8,8))
+ax7 = fig.add_subplot(1,1,1) 
+ax7.set_xlabel('Principal component 1', fontsize = 15)
+ax7.set_ylabel('Principal component 6', fontsize = 15)
+ax7.set_title('2 components PCA, all samples', fontsize = 20)
+for target, color in zip(targets, colors):
+    indicesToKeep = data_frames_comp_PCA_T['index'] == target
+    ax7.scatter(data_frames_comp_PCA_T.loc[indicesToKeep,'PCA1'], data_frames_comp_PCA_T.loc[indicesToKeep,'PCA6'], c = color)
+    
+def label_point(x,y,val,ax):
+    a = pd.concat({'x':data_frames_comp_PCA_T.PCA1,'y':data_frames_comp_PCA_T.PCA6,'val':data_frames_comp_PCA_T.mean_band}, axis=1)
+    for i, point in a.iterrows():
+        ax7.text(point['x'],point['y'], str(point['val']))
+label_point(data_frames_comp_PCA_T.PCA1,data_frames_comp_PCA_T.PCA6,data_frames_comp_PCA_T.mean_band,ax7)    
+    
+ax7.grid()
+plt.axvline(x=0, color='k', linewidth=2)
+plt.axhline(y=0, color='k', linewidth=2)
+plt.savefig(idir+'PCA1_PCA6_all_samples.png')
+plt.show()
+
+#PCA2 VS PCA4
+
+fig = plt.figure(figsize = (8,8))
+ax8 = fig.add_subplot(1,1,1) 
+ax8.set_xlabel('Principal component 2', fontsize = 15)
+ax8.set_ylabel('Principal component 4', fontsize = 15)
+ax8.set_title('2 components PCA, all samples', fontsize = 20)
+for target, color in zip(targets, colors):
+    indicesToKeep = data_frames_comp_PCA_T['index'] == target
+    ax8.scatter(data_frames_comp_PCA_T.loc[indicesToKeep,'PCA2'], data_frames_comp_PCA_T.loc[indicesToKeep,'PCA4'], c = color)
+    
+def label_point(x,y,val,ax):
+    a = pd.concat({'x':data_frames_comp_PCA_T.PCA2,'y':data_frames_comp_PCA_T.PCA4,'val':data_frames_comp_PCA_T.mean_band}, axis=1)
+    for i, point in a.iterrows():
+        ax8.text(point['x'],point['y'], str(point['val']))
+label_point(data_frames_comp_PCA_T.PCA2,data_frames_comp_PCA_T.PCA4,data_frames_comp_PCA_T.mean_band,ax8)   
+    
+ax8.grid()
+plt.axvline(x=0, color='k', linewidth=2)
+plt.axhline(y=0, color='k', linewidth=2)
+plt.savefig(idir+'PCA2_PCA4_all_samples.png')
+plt.show()
+
+#PCA2 VS PCA5
+
+fig = plt.figure(figsize = (8,8))
+ax9 = fig.add_subplot(1,1,1) 
+ax9.set_xlabel('Principal component 2', fontsize = 15)
+ax9.set_ylabel('Principal component 5', fontsize = 15)
+ax9.set_title('2 components PCA, all samples', fontsize = 20)
+for target, color in zip(targets, colors):
+    indicesToKeep = data_frames_comp_PCA_T['index'] == target
+    ax9.scatter(data_frames_comp_PCA_T.loc[indicesToKeep,'PCA2'], data_frames_comp_PCA_T.loc[indicesToKeep,'PCA5'], c = color)
+    
+def label_point(x,y,val,ax):
+    a = pd.concat({'x':data_frames_comp_PCA_T.PCA2,'y':data_frames_comp_PCA_T.PCA5,'val':data_frames_comp_PCA_T.mean_band}, axis=1)
+    for i, point in a.iterrows():
+        ax9.text(point['x'],point['y'], str(point['val']))
+label_point(data_frames_comp_PCA_T.PCA2,data_frames_comp_PCA_T.PCA5,data_frames_comp_PCA_T.mean_band,ax9)   
+    
+ax9.grid()
+plt.axvline(x=0, color='k', linewidth=2)
+plt.axhline(y=0, color='k', linewidth=2)
+plt.savefig(idir+'PCA2_PCA5_all_samples.png')
+plt.show()
+
+#PCA2 VS PCA6
+
+fig = plt.figure(figsize = (8,8))
+ax10 = fig.add_subplot(1,1,1) 
+ax10.set_xlabel('Principal component 2', fontsize = 15)
+ax10.set_ylabel('Principal component 6', fontsize = 15)
+ax10.set_title('2 components PCA, all samples', fontsize = 20)
+for target, color in zip(targets, colors):
+    indicesToKeep = data_frames_comp_PCA_T['index'] == target
+    ax10.scatter(data_frames_comp_PCA_T.loc[indicesToKeep,'PCA2'], data_frames_comp_PCA_T.loc[indicesToKeep,'PCA6'], c = color)
+    
+def label_point(x,y,val,ax):
+    a = pd.concat({'x':data_frames_comp_PCA_T.PCA2,'y':data_frames_comp_PCA_T.PCA6,'val':data_frames_comp_PCA_T.mean_band}, axis=1)
+    for i, point in a.iterrows():
+        ax10.text(point['x'],point['y'], str(point['val']))
+label_point(data_frames_comp_PCA_T.PCA2,data_frames_comp_PCA_T.PCA6,data_frames_comp_PCA_T.mean_band,ax10)   
+    
+ax10.grid()
+plt.axvline(x=0, color='k', linewidth=2)
+plt.axhline(y=0, color='k', linewidth=2)
+plt.savefig(idir+'PCA2_PCA6_all_samples.png')
+plt.show()
+
+#PCA3 VS PCA4
+
+fig = plt.figure(figsize = (8,8))
+ax11 = fig.add_subplot(1,1,1) 
+ax11.set_xlabel('Principal component 3', fontsize = 15)
+ax11.set_ylabel('Principal component 4', fontsize = 15)
+ax11.set_title('2 components PCA, all samples', fontsize = 20)
+for target, color in zip(targets, colors):
+    indicesToKeep = data_frames_comp_PCA_T['index'] == target
+    ax11.scatter(data_frames_comp_PCA_T.loc[indicesToKeep,'PCA3'], data_frames_comp_PCA_T.loc[indicesToKeep,'PCA4'], c = color)
+    
+def label_point(x,y,val,ax):
+    a = pd.concat({'x':data_frames_comp_PCA_T.PCA3,'y':data_frames_comp_PCA_T.PCA4,'val':data_frames_comp_PCA_T.mean_band}, axis=1)
+    for i, point in a.iterrows():
+        ax11.text(point['x'],point['y'], str(point['val']))
+label_point(data_frames_comp_PCA_T.PCA3,data_frames_comp_PCA_T.PCA4,data_frames_comp_PCA_T.mean_band,ax11)   
+    
+ax11.grid()
+plt.axvline(x=0, color='k', linewidth=2)
+plt.axhline(y=0, color='k', linewidth=2)
+plt.savefig(idir+'PCA3_PCA4_all_samples.png')
+plt.show()
+
+#PCA3 VS PCA5
+
+fig = plt.figure(figsize = (8,8))
+ax12 = fig.add_subplot(1,1,1) 
+ax12.set_xlabel('Principal component 3', fontsize = 15)
+ax12.set_ylabel('Principal component 5', fontsize = 15)
+ax12.set_title('2 components PCA, all samples', fontsize = 20)
+for target, color in zip(targets, colors):
+    indicesToKeep = data_frames_comp_PCA_T['index'] == target
+    ax12.scatter(data_frames_comp_PCA_T.loc[indicesToKeep,'PCA3'], data_frames_comp_PCA_T.loc[indicesToKeep,'PCA5'], c = color)
+    
+def label_point(x,y,val,ax):
+    a = pd.concat({'x':data_frames_comp_PCA_T.PCA3,'y':data_frames_comp_PCA_T.PCA5,'val':data_frames_comp_PCA_T.mean_band}, axis=1)
+    for i, point in a.iterrows():
+        ax12.text(point['x'],point['y'], str(point['val']))
+label_point(data_frames_comp_PCA_T.PCA3,data_frames_comp_PCA_T.PCA5,data_frames_comp_PCA_T.mean_band,ax12)   
+    
+ax12.grid()
+plt.axvline(x=0, color='k', linewidth=2)
+plt.axhline(y=0, color='k', linewidth=2)
+plt.savefig(idir+'PCA3_PCA5_all_samples.png')
+plt.show()
+
+#PCA3 VS PCA6
+
+fig = plt.figure(figsize = (8,8))
+ax13 = fig.add_subplot(1,1,1) 
+ax13.set_xlabel('Principal component 3', fontsize = 15)
+ax13.set_ylabel('Principal component 6', fontsize = 15)
+ax13.set_title('2 components PCA, all samples', fontsize = 20)
+for target, color in zip(targets, colors):
+    indicesToKeep = data_frames_comp_PCA_T['index'] == target
+    ax13.scatter(data_frames_comp_PCA_T.loc[indicesToKeep,'PCA3'], data_frames_comp_PCA_T.loc[indicesToKeep,'PCA6'], c = color)
+    
+def label_point(x,y,val,ax):
+    a = pd.concat({'x':data_frames_comp_PCA_T.PCA3,'y':data_frames_comp_PCA_T.PCA6,'val':data_frames_comp_PCA_T.mean_band}, axis=1)
+    for i, point in a.iterrows():
+        ax13.text(point['x'],point['y'], str(point['val']))
+label_point(data_frames_comp_PCA_T.PCA3,data_frames_comp_PCA_T.PCA6,data_frames_comp_PCA_T.mean_band,ax13)   
+    
+ax13.grid()
+plt.axvline(x=0, color='k', linewidth=2)
+plt.axhline(y=0, color='k', linewidth=2)
+plt.savefig(idir+'PCA3_PCA6_all_samples.png')
+plt.show()
+
+#PCA4 VS PCA5
+
+fig = plt.figure(figsize = (8,8))
+ax14 = fig.add_subplot(1,1,1) 
+ax14.set_xlabel('Principal component 4', fontsize = 15)
+ax14.set_ylabel('Principal component 5', fontsize = 15)
+ax14.set_title('2 components PCA, all samples', fontsize = 20)
+for target, color in zip(targets, colors):
+    indicesToKeep = data_frames_comp_PCA_T['index'] == target
+    ax14.scatter(data_frames_comp_PCA_T.loc[indicesToKeep,'PCA4'], data_frames_comp_PCA_T.loc[indicesToKeep,'PCA5'], c = color)
+    
+def label_point(x,y,val,ax):
+    a = pd.concat({'x':data_frames_comp_PCA_T.PCA4,'y':data_frames_comp_PCA_T.PCA5,'val':data_frames_comp_PCA_T.mean_band}, axis=1)
+    for i, point in a.iterrows():
+        ax14.text(point['x'],point['y'], str(point['val']))
+label_point(data_frames_comp_PCA_T.PCA4,data_frames_comp_PCA_T.PCA5,data_frames_comp_PCA_T.mean_band,ax14)   
+    
+ax14.grid()
+plt.axvline(x=0, color='k', linewidth=2)
+plt.axhline(y=0, color='k', linewidth=2)
+plt.savefig(idir+'PCA4_PCA5_all_samples.png')
+plt.show()
+
+#PCA4 VS PCA6
+
+fig = plt.figure(figsize = (8,8))
+ax15 = fig.add_subplot(1,1,1) 
+ax15.set_xlabel('Principal component 4', fontsize = 15)
+ax15.set_ylabel('Principal component 6', fontsize = 15)
+ax15.set_title('2 components PCA, all samples', fontsize = 20)
+for target, color in zip(targets, colors):
+    indicesToKeep = data_frames_comp_PCA_T['index'] == target
+    ax15.scatter(data_frames_comp_PCA_T.loc[indicesToKeep,'PCA4'], data_frames_comp_PCA_T.loc[indicesToKeep,'PCA6'], c = color)
+    
+def label_point(x,y,val,ax):
+    a = pd.concat({'x':data_frames_comp_PCA_T.PCA4,'y':data_frames_comp_PCA_T.PCA6,'val':data_frames_comp_PCA_T.mean_band}, axis=1)
+    for i, point in a.iterrows():
+        ax15.text(point['x'],point['y'], str(point['val']))
+label_point(data_frames_comp_PCA_T.PCA4,data_frames_comp_PCA_T.PCA6,data_frames_comp_PCA_T.mean_band,ax15)   
+    
+ax15.grid()
+plt.axvline(x=0, color='k', linewidth=2)
+plt.axhline(y=0, color='k', linewidth=2)
+plt.savefig(idir+'PCA4_PCA6_all_samples.png')
+plt.show()
+
+#PCA5 VS PCA6
+
+fig = plt.figure(figsize = (8,8))
+ax16 = fig.add_subplot(1,1,1) 
+ax16.set_xlabel('Principal component 5', fontsize = 15)
+ax16.set_ylabel('Principal component 6', fontsize = 15)
+ax16.set_title('2 components PCA, all samples', fontsize = 20)
+for target, color in zip(targets, colors):
+    indicesToKeep = data_frames_comp_PCA_T['index'] == target
+    ax16.scatter(data_frames_comp_PCA_T.loc[indicesToKeep,'PCA5'], data_frames_comp_PCA_T.loc[indicesToKeep,'PCA6'], c = color)
+    
+def label_point(x,y,val,ax):
+    a = pd.concat({'x':data_frames_comp_PCA_T.PCA5,'y':data_frames_comp_PCA_T.PCA6,'val':data_frames_comp_PCA_T.mean_band}, axis=1)
+    for i, point in a.iterrows():
+        ax16.text(point['x'],point['y'], str(point['val']))
+label_point(data_frames_comp_PCA_T.PCA5,data_frames_comp_PCA_T.PCA6,data_frames_comp_PCA_T.mean_band,ax16)   
+    
+ax16.grid()
+plt.axvline(x=0, color='k', linewidth=2)
+plt.axhline(y=0, color='k', linewidth=2)
+plt.savefig(idir+'PCA5_PCA6_all_samples.png')
+plt.show()
