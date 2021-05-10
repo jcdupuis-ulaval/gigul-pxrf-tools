@@ -1,0 +1,402 @@
+
+# -*- coding: utf-8 -*-
+"""
+Created on Thu Apr 29 14:05:54 2021
+
+@author: debth
+"""
+
+# Ici on importe les librarys
+import os 
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+import matplotlib.colors as colors
+import matplotlib.cm as cmx
+
+# Machine learning libraries
+from mpl_toolkits.mplot3d import Axes3D
+from sklearn.decomposition import PCA
+from sklearn.preprocessing import StandardScaler
+from sklearn.metrics import confusion_matrix
+from sklearn.metrics import accuracy_score
+from matplotlib.pyplot import cm
+from missingpy import MissForest
+from cycler import cycler 
+
+# File setup for data
+rdir = '../results/PCA-tables/'
+cdir = '../results/PCA-datas/'
+pdir = '../results/peaks/'
+idir = '../results/CSV/PCA/'
+fname = 'PCA-mean.csv'
+XRF_import = pd.read_csv(rdir+fname, delimiter=',')
+flist_peaks = os.listdir(path=pdir)
+flist_peaks = np.asarray(flist_peaks)
+#types = XRF_import.loc[:,["Types"]].values
+
+
+# Data Cleaning 
+XRF_import["Reading-ID"] = flist_peaks
+
+
+# Now we standardise the dataset before doing PCA
+
+y = XRF_import.loc[:,["Reading-ID"]].values
+XRF_import = XRF_import.drop(columns=["Reading-ID"])
+#XRF_import = XRF_import.drop(columns=["Types"])
+cols=[0,5,22,23,24,25,26,27,28,30]
+XRF_import = XRF_import.drop(XRF_import.columns[cols],axis=1)
+columns_name = XRF_import.columns.tolist()
+columns_name = {'band': columns_name[:]}
+n = len(XRF_import.columns)
+x = XRF_import
+
+# Missing Forest Imputation
+#nan=float("NaN")
+#x[x==-999]=np.nan
+#imputer = MissForest(max_iter=5,n_estimators=50)
+#x_imputed = imputer.fit_transform(x)
+
+x_imputed = x.replace(-999, 1)
+mean_value = x_imputed.mean(axis=1)
+x_imputed = x_imputed.div(mean_value, axis=0)
+
+####### absolute scaling
+
+# def maximum_absolute_scaling(df):
+#     #Copy the dataframe
+    
+#     df_scaled = df.copy()
+    
+#     # apply maximum absolute scaling
+    
+#     for column in df.columns:
+#         df_scaled[column] = df_scaled[column]/df_scaled[column].abs().max()
+#         return df_scaled
+    
+# # fonction call
+
+# data_features = maximum_absolute_scaling(x_imputed)
+
+###### Standard Scaler
+
+data_features = StandardScaler().fit_transform(x_imputed)
+
+# PCA with n components
+
+
+
+pca = PCA(n_components=n)
+data_frames_PCA = pca.fit_transform(data_features)
+data_frames_comp_PCA = pd.DataFrame(data = data_frames_PCA)
+eigenvalues = pca.explained_variance_
+var = np.cumsum(np.round(eigenvalues,decimals=3)*100)
+res = []
+for key in columns_name.keys():
+    res.append(columns_name[key])
+print ("the list of values is : " + str(res))
+columns_name = np.array(res, dtype='float64')
+columns_name = columns_name.transpose()
+columns_name = columns_name[:,0]*0.01953125
+# each bin is 0.3125Kev so +/- 0.15625KeV from mean values
+data_frames_comp_PCA_T = data_frames_comp_PCA.iloc[:,0:6]
+data_frames_comp_PCA_T.columns = ['PCA1','PCA2','PCA3','PCA4','PCA5','PCA6']
+data_frames_comp_PCA_T['type'] = 0
+#data_frames_comp_PCA_T['mean_energy'] = columns_name
+#data_frames_comp_PCA_T['mean_band'] = ['Si','Th-Lα','K','Ca','Ti','V','Cr','Mn','Fe-Kα','Co,Fe-Kβ','Ni','Cu-W','Zn-Hg','As,Se','Rb','U','Sr','Y',
+#                                      'Zr-Kα','Th-Lβ','Nb','Mo,Zr-Kβ','Pd','Ag','Cd','Sb','Ba']
+#data_frames_comp_PCA_T['index'] = np.arange(n)
+data_frames_comp_PCA_T.to_csv(r'D:\My Documents\Document\Université\Projet AMARUQ\script\Python\Spectre\find-peaks-V0\results\PCA-tables\PCA_imputed_score.csv')
+data_frames_comp_PCA_T1,data_frames_comp_PCA_T2=np.array_split(data_frames_comp_PCA_T,2)
+
+
+
+# All KOI PCA visualisation
+
+fig1=plt.figure(figsize = (8,8))
+ax1 = Axes3D(fig1)
+ax1.set_xlabel('Principal component 1', fontsize = 15)
+ax1.set_ylabel('Principal component 2', fontsize = 15)
+ax1.set_zlabel('Principal component 3', fontsize = 15)
+ax1.set_title('3 components PCA, all samples', fontsize = 20)
+targetname = ['sample']
+targetname1,targetname2=np.array_split(targetname,2)
+targets = np.arange(n)
+colors = cm.nipy_spectral(np.linspace(0,1,4))
+
+for target, color in zip(targets, colors):
+    indicesToKeep = data_frames_comp_PCA_T['type'] == target
+    ax1.scatter(data_frames_comp_PCA_T1.loc[indicesToKeep,'PCA1'], data_frames_comp_PCA_T1.loc[indicesToKeep,'PCA2'],
+                data_frames_comp_PCA_T1.loc[indicesToKeep,'PCA3'], c = color, marker='o', s = 30)
+
+for target, color in zip(targets, colors):
+    indicesToKeep = data_frames_comp_PCA_T['type'] == target
+    ax1.scatter(data_frames_comp_PCA_T2.loc[indicesToKeep,'PCA1'], data_frames_comp_PCA_T2.loc[indicesToKeep,'PCA2'],
+                data_frames_comp_PCA_T2.loc[indicesToKeep,'PCA3'], c = color, marker='o',label=target, s = 30)
+    
+ax1.legend(targetname,loc=3)
+plt.show()
+
+plt.savefig(idir+'All_PCA_Field.png')
+
+# 2 PCA comparaison 
+
+# PCA1 VS PCA2
+
+fig = plt.figure(figsize = (8,8))
+ax2 = fig.add_subplot(1,1,1) 
+ax2.set_xlabel('Principal component 1', fontsize = 15)
+ax2.set_ylabel('Principal component 2', fontsize = 15)
+ax2.set_title('2 components PCA, all samples scores', fontsize = 20)
+
+for target, color in zip(targets, colors):
+    indicesToKeep = data_frames_comp_PCA_T['type'] == target
+    ax2.scatter(data_frames_comp_PCA_T.loc[indicesToKeep,'PCA1'], data_frames_comp_PCA_T.loc[indicesToKeep,'PCA2'], c = color)
+    
+ax2.legend(targetname)
+ax2.grid()
+plt.axvline(x=0, color='k')
+plt.axhline(y=0, color='k')
+plt.savefig(idir+'PCA1_PCA2_all_samples_score.png')
+plt.show()
+
+# PCA2 VS PCA3
+
+fig = plt.figure(figsize = (8,8))
+ax3 = fig.add_subplot(1,1,1) 
+ax3.set_xlabel('Principal component 2', fontsize = 15)
+ax3.set_ylabel('Principal component 3', fontsize = 15)
+ax3.set_title('2 components PCA, all samples scores', fontsize = 20)
+
+for target, color in zip(targets, colors):
+    indicesToKeep = data_frames_comp_PCA_T['type'] == target
+    ax3.scatter(data_frames_comp_PCA_T.loc[indicesToKeep,'PCA2'], data_frames_comp_PCA_T.loc[indicesToKeep,'PCA3'], c = color)
+ax3.legend(targetname)
+plt.axvline(x=0, color='k')
+plt.axhline(y=0, color='k')
+ax3.grid()
+plt.savefig(idir+'PCA2_PCA3_all_samples_score.png')
+plt.show()
+
+#PCA1 VS PCA3
+
+fig = plt.figure(figsize = (8,8))
+ax4 = fig.add_subplot(1,1,1) 
+ax4.set_xlabel('Principal component 1', fontsize = 15)
+ax4.set_ylabel('Principal component 3', fontsize = 15)
+ax4.set_title('2 components PCA, all samples scores', fontsize = 20)
+for target, color in zip(targets, colors):
+    indicesToKeep = data_frames_comp_PCA_T['type'] == target
+    ax4.scatter(data_frames_comp_PCA_T.loc[indicesToKeep,'PCA1'], data_frames_comp_PCA_T.loc[indicesToKeep,'PCA3'], c = color)
+ax4.legend(targetname)
+ax4.grid()
+plt.axvline(x=0, color='k', linewidth=2)
+plt.axhline(y=0, color='k', linewidth=2)
+plt.savefig(idir+'PCA1_PCA3_all_samples_score.png')
+plt.show()
+
+#PCA1 VS PCA4
+
+fig = plt.figure(figsize = (8,8))
+ax4 = fig.add_subplot(1,1,1) 
+ax4.set_xlabel('Principal component 1', fontsize = 15)
+ax4.set_ylabel('Principal component 4', fontsize = 15)
+ax4.set_title('2 components PCA, all samples scores', fontsize = 20)
+for target, color in zip(targets, colors):
+    indicesToKeep = data_frames_comp_PCA_T['type'] == target
+    ax4.scatter(data_frames_comp_PCA_T.loc[indicesToKeep,'PCA1'], data_frames_comp_PCA_T.loc[indicesToKeep,'PCA4'], c = color)
+ax4.legend(targetname)
+ax4.grid()
+plt.axvline(x=0, color='k', linewidth=2)
+plt.axhline(y=0, color='k', linewidth=2)
+plt.savefig(idir+'PCA1_PCA4_all_samples_score.png')
+plt.show()
+
+#PCA1 VS PCA5
+
+fig = plt.figure(figsize = (8,8))
+ax4 = fig.add_subplot(1,1,1) 
+ax4.set_xlabel('Principal component 1', fontsize = 15)
+ax4.set_ylabel('Principal component 5', fontsize = 15)
+ax4.set_title('2 components PCA, all samples scores', fontsize = 20)
+for target, color in zip(targets, colors):
+    indicesToKeep = data_frames_comp_PCA_T['type'] == target
+    ax4.scatter(data_frames_comp_PCA_T.loc[indicesToKeep,'PCA1'], data_frames_comp_PCA_T.loc[indicesToKeep,'PCA5'], c = color)
+ax4.legend(targetname)
+ax4.grid()
+plt.axvline(x=0, color='k', linewidth=2)
+plt.axhline(y=0, color='k', linewidth=2)
+plt.savefig(idir+'PCA1_PCA5_all_samples_score.png')
+plt.show()
+
+#PCA1 VS PCA6
+
+fig = plt.figure(figsize = (8,8))
+ax4 = fig.add_subplot(1,1,1) 
+ax4.set_xlabel('Principal component 1', fontsize = 15)
+ax4.set_ylabel('Principal component 6', fontsize = 15)
+ax4.set_title('2 components PCA, all samples scores', fontsize = 20)
+for target, color in zip(targets, colors):
+    indicesToKeep = data_frames_comp_PCA_T['type'] == target
+    ax4.scatter(data_frames_comp_PCA_T.loc[indicesToKeep,'PCA1'], data_frames_comp_PCA_T.loc[indicesToKeep,'PCA6'], c = color)
+ax4.legend(targetname)
+ax4.grid()
+plt.axvline(x=0, color='k', linewidth=2)
+plt.axhline(y=0, color='k', linewidth=2)
+plt.savefig(idir+'PCA1_PCA6_all_samples_score.png')
+plt.show()
+
+#PCA2 VS PCA4
+
+fig = plt.figure(figsize = (8,8))
+ax4 = fig.add_subplot(1,1,1) 
+ax4.set_xlabel('Principal component 2', fontsize = 15)
+ax4.set_ylabel('Principal component 4', fontsize = 15)
+ax4.set_title('2 components PCA, all samples scores', fontsize = 20)
+for target, color in zip(targets, colors):
+    indicesToKeep = data_frames_comp_PCA_T['type'] == target
+    ax4.scatter(data_frames_comp_PCA_T.loc[indicesToKeep,'PCA2'], data_frames_comp_PCA_T.loc[indicesToKeep,'PCA4'], c = color)
+ax4.legend(targetname)
+ax4.grid()
+plt.axvline(x=0, color='k', linewidth=2)
+plt.axhline(y=0, color='k', linewidth=2)
+plt.savefig(idir+'PCA2_PCA4_all_samples_score.png')
+plt.show()
+
+#PCA2 VS PCA5
+
+fig = plt.figure(figsize = (8,8))
+ax4 = fig.add_subplot(1,1,1) 
+ax4.set_xlabel('Principal component 2', fontsize = 15)
+ax4.set_ylabel('Principal component 5', fontsize = 15)
+ax4.set_title('2 components PCA, all samples scores', fontsize = 20)
+for target, color in zip(targets, colors):
+    indicesToKeep = data_frames_comp_PCA_T['type'] == target
+    ax4.scatter(data_frames_comp_PCA_T.loc[indicesToKeep,'PCA2'], data_frames_comp_PCA_T.loc[indicesToKeep,'PCA5'], c = color)
+ax4.legend(targetname)
+ax4.grid()
+plt.axvline(x=0, color='k', linewidth=2)
+plt.axhline(y=0, color='k', linewidth=2)
+plt.savefig(idir+'PCA2_PCA5_all_samples_score.png')
+plt.show()
+
+#PCA2 VS PCA6
+
+fig = plt.figure(figsize = (8,8))
+ax4 = fig.add_subplot(1,1,1) 
+ax4.set_xlabel('Principal component 2', fontsize = 15)
+ax4.set_ylabel('Principal component 6', fontsize = 15)
+ax4.set_title('2 components PCA, all samples scores', fontsize = 20)
+for target, color in zip(targets, colors):
+    indicesToKeep = data_frames_comp_PCA_T['type'] == target
+    ax4.scatter(data_frames_comp_PCA_T.loc[indicesToKeep,'PCA2'], data_frames_comp_PCA_T.loc[indicesToKeep,'PCA6'], c = color)
+ax4.legend(targetname)
+ax4.grid()
+plt.axvline(x=0, color='k', linewidth=2)
+plt.axhline(y=0, color='k', linewidth=2)
+plt.savefig(idir+'PCA2_PCA6_all_samples_score.png')
+plt.show()
+
+#PCA3 VS PCA4
+
+fig = plt.figure(figsize = (8,8))
+ax4 = fig.add_subplot(1,1,1) 
+ax4.set_xlabel('Principal component 3', fontsize = 15)
+ax4.set_ylabel('Principal component 4', fontsize = 15)
+ax4.set_title('2 components PCA, all  samples scores', fontsize = 20)
+for target, color in zip(targets, colors):
+    indicesToKeep = data_frames_comp_PCA_T['type'] == target
+    ax4.scatter(data_frames_comp_PCA_T.loc[indicesToKeep,'PCA3'], data_frames_comp_PCA_T.loc[indicesToKeep,'PCA4'], c = color)
+ax4.legend(targetname)
+ax4.grid()
+plt.axvline(x=0, color='k', linewidth=2)
+plt.axhline(y=0, color='k', linewidth=2)
+plt.savefig(idir+'PCA3_PCA4_all_samples_score.png')
+plt.show()
+
+#PCA3 VS PCA5
+
+fig = plt.figure(figsize = (8,8))
+ax4 = fig.add_subplot(1,1,1) 
+ax4.set_xlabel('Principal component 3', fontsize = 15)
+ax4.set_ylabel('Principal component 5', fontsize = 15)
+ax4.set_title('2 components PCA, all samples scores', fontsize = 20)
+for target, color in zip(targets, colors):
+    indicesToKeep = data_frames_comp_PCA_T['type'] == target
+    ax4.scatter(data_frames_comp_PCA_T.loc[indicesToKeep,'PCA3'], data_frames_comp_PCA_T.loc[indicesToKeep,'PCA5'], c = color)
+ax4.legend(targetname)
+ax4.grid()
+plt.axvline(x=0, color='k', linewidth=2)
+plt.axhline(y=0, color='k', linewidth=2)
+plt.savefig(idir+'PCA3_PCA5_all_samples_score.png')
+plt.show()
+
+#PCA3 VS PCA6
+
+fig = plt.figure(figsize = (8,8))
+ax4 = fig.add_subplot(1,1,1) 
+ax4.set_xlabel('Principal component 3', fontsize = 15)
+ax4.set_ylabel('Principal component 6', fontsize = 15)
+ax4.set_title('2 components PCA, all samples scores', fontsize = 20)
+for target, color in zip(targets, colors):
+    indicesToKeep = data_frames_comp_PCA_T['type'] == target
+    ax4.scatter(data_frames_comp_PCA_T.loc[indicesToKeep,'PCA3'], data_frames_comp_PCA_T.loc[indicesToKeep,'PCA6'], c = color)
+ax4.legend(targetname)
+ax4.grid()
+plt.axvline(x=0, color='k', linewidth=2)
+plt.axhline(y=0, color='k', linewidth=2)
+plt.savefig(idir+'PCA3_PCA6_all_samples_scores.png')
+plt.show()
+
+#PCA4 VS PCA5
+
+fig = plt.figure(figsize = (8,8))
+ax4 = fig.add_subplot(1,1,1) 
+ax4.set_xlabel('Principal component 4', fontsize = 15)
+ax4.set_ylabel('Principal component 5', fontsize = 15)
+ax4.set_title('2 components PCA, all samples scores', fontsize = 20)
+for target, color in zip(targets, colors):
+    indicesToKeep = data_frames_comp_PCA_T['type'] == target
+    ax4.scatter(data_frames_comp_PCA_T.loc[indicesToKeep,'PCA4'], data_frames_comp_PCA_T.loc[indicesToKeep,'PCA5'], c = color)
+ax4.legend(targetname)
+ax4.grid()
+plt.axvline(x=0, color='k', linewidth=2)
+plt.axhline(y=0, color='k', linewidth=2)
+plt.savefig(idir+'PCA4_PCA5_all_samples_score.png')
+plt.show()
+
+#PCA4 VS PCA6
+
+fig = plt.figure(figsize = (8,8))
+ax4 = fig.add_subplot(1,1,1) 
+ax4.set_xlabel('Principal component 4', fontsize = 15)
+ax4.set_ylabel('Principal component 6', fontsize = 15)
+ax4.set_title('2 components PCA, all samples scores', fontsize = 20)
+for target, color in zip(targets, colors):
+    indicesToKeep = data_frames_comp_PCA_T['type'] == target
+    ax4.scatter(data_frames_comp_PCA_T.loc[indicesToKeep,'PCA4'], data_frames_comp_PCA_T.loc[indicesToKeep,'PCA6'], c = color)
+ax4.legend(targetname)
+ax4.grid()
+plt.axvline(x=0, color='k', linewidth=2)
+plt.axhline(y=0, color='k', linewidth=2)
+plt.savefig(idir+'PCA4_PCA6_all_samples_score.png')
+plt.show()
+
+#PCA5 VS PCA6
+
+fig = plt.figure(figsize = (8,8))
+ax4 = fig.add_subplot(1,1,1) 
+ax4.set_xlabel('Principal component 5', fontsize = 15)
+ax4.set_ylabel('Principal component 6', fontsize = 15)
+ax4.set_title('2 components PCA, all samples scores', fontsize = 20)
+for target, color in zip(targets, colors):
+    indicesToKeep = data_frames_comp_PCA_T['type'] == target
+    ax4.scatter(data_frames_comp_PCA_T.loc[indicesToKeep,'PCA5'], data_frames_comp_PCA_T.loc[indicesToKeep,'PCA6'], c = color)
+ax4.legend(targetname)
+ax4.grid()
+plt.axvline(x=0, color='k', linewidth=2)
+plt.axhline(y=0, color='k', linewidth=2)
+plt.savefig(idir+'PCA5_PCA6_all_samples_score.png')
+plt.show()
